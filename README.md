@@ -470,11 +470,10 @@ MIT License - see LICENSE file for details
 ## Support
 
 For issues and questions:
-1. Check the troubleshooting section
-2. Review [NOTIFICATIONS_SETUP.md](NOTIFICATIONS_SETUP.md) for notification issues
-3. Check backend logs: `docker-compose logs backend`
-4. Check frontend logs: `docker-compose logs frontend`
-5. Open an issue on GitHub
+1. Review [NOTIFICATIONS_SETUP.md](NOTIFICATIONS_SETUP.md) for notification issues
+2. Check backend logs: `docker-compose logs backend`
+3. Check frontend logs: `docker-compose logs frontend`
+4. Open an issue on GitHub
 
 ## Changelog
 
