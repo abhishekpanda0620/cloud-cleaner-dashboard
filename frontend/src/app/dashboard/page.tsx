@@ -1,19 +1,75 @@
 "use client"
 import { useEffect, useState } from "react";
+import StatCard from "@/components/StatCard";
+import ResourceTab from "@/components/ResourceTab";
 
 interface EC2Instance {
   id: string;
   state: string;
 }
 
-interface DashboardData {
-  unused_instances: EC2Instance[];
+interface EBSVolume {
+  id: string;
+  size: number;
+  state: string;
 }
 
+interface S3Bucket {
+  name: string;
+  creation_date: string;
+}
+
+interface IAMRole {
+  name: string;
+  last_used_date?: string;
+  create_date?: string;
+}
+
+interface IAMUser {
+  name: string;
+  create_date: string;
+  arn: string;
+  has_console_access: boolean;
+  access_keys_count: number;
+  access_keys: Array<{
+    access_key_id: string;
+    status: string;
+    create_date: string;
+  }>;
+}
+
+interface AccessKey {
+  access_key_id: string;
+  user_name: string;
+  status: string;
+  create_date: string;
+  last_used_date?: string;
+  security_risk: string;
+}
+
+interface DashboardData {
+  ec2: EC2Instance[];
+  ebs: EBSVolume[];
+  s3: S3Bucket[];
+  iam: IAMRole[];
+  iam_users: IAMUser[];
+  access_keys: AccessKey[];
+}
+
+type TabType = 'ec2' | 'ebs' | 's3' | 'iam' | 'iam_users' | 'access_keys';
+
 export default function Dashboard() {
-  const [ec2, setEc2] = useState<EC2Instance[]>([]);
+  const [data, setData] = useState<DashboardData>({
+    ec2: [],
+    ebs: [],
+    s3: [],
+    iam: [],
+    iam_users: [],
+    access_keys: []
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabType>('ec2');
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8084/api";
 
   useEffect(() => {
@@ -22,17 +78,66 @@ export default function Dashboard() {
         setLoading(true);
         setError(null);
         
-        const response = await fetch(`${apiUrl}/ec2/unused`);
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        const endpoints = [
+          { url: `${apiUrl}/ec2/unused`, key: 'ec2', dataKey: 'unused_instances' },
+          { url: `${apiUrl}/ebs/unused`, key: 'ebs', dataKey: 'unused_volumes' },
+          { url: `${apiUrl}/s3/unused`, key: 's3', dataKey: 'unused_buckets' },
+          { url: `${apiUrl}/iam/unused`, key: 'iam', dataKey: 'unused_roles' },
+          { url: `${apiUrl}/iam/users/unused`, key: 'iam_users', dataKey: 'unused_users' },
+          { url: `${apiUrl}/iam/access-keys/unused`, key: 'access_keys', dataKey: 'unused_keys' }
+        ];
+
+        const results = await Promise.allSettled(
+          endpoints.map(ep => fetch(ep.url))
+        );
+
+        const newData: DashboardData = {
+          ec2: [],
+          ebs: [],
+          s3: [],
+          iam: [],
+          iam_users: [],
+          access_keys: []
+        };
+
+        let hasError = false;
+        const errors: string[] = [];
+
+        for (let i = 0; i < results.length; i++) {
+          const result = results[i];
+          const endpoint = endpoints[i];
+
+          if (result.status === 'fulfilled') {
+            const response = result.value;
+            if (response.ok) {
+              try {
+                const jsonData = await response.json();
+                newData[endpoint.key as keyof DashboardData] = jsonData[endpoint.dataKey] || [];
+              } catch (parseErr) {
+                hasError = true;
+                errors.push(`${endpoint.key}: Failed to parse response`);
+                console.error(`Error parsing ${endpoint.key}:`, parseErr);
+              }
+            } else {
+              hasError = true;
+              errors.push(`${endpoint.key}: ${response.status} ${response.statusText}`);
+              console.error(`Error fetching ${endpoint.key}:`, response.statusText);
+            }
+          } else {
+            hasError = true;
+            errors.push(`${endpoint.key}: Network error`);
+            console.error(`Network error for ${endpoint.key}:`, result.reason);
+          }
         }
-        
-        const data: DashboardData = await response.json();
-        setEc2(data.unused_instances || []);
+
+        setData(newData);
+
+        if (hasError && errors.length > 0) {
+          setError(`Some resources failed to load: ${errors.join(', ')}`);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to fetch data");
-        console.error("Error fetching EC2 instances:", err);
+        console.error("Error fetching data:", err);
       } finally {
         setLoading(false);
       }
@@ -41,44 +146,297 @@ export default function Dashboard() {
     fetchData();
   }, [apiUrl]);
 
+  const totalSavings = (data.ec2.length * 50) + (data.ebs.length * 10) + (data.s3.length * 5);
+
+  const tabs = [
+    { id: 'ec2' as TabType, label: '🖥️ EC2 Instances', count: data.ec2.length, color: 'blue' },
+    { id: 'ebs' as TabType, label: '💾 EBS Volumes', count: data.ebs.length, color: 'purple' },
+    { id: 's3' as TabType, label: '🪣 S3 Buckets', count: data.s3.length, color: 'orange' },
+    { id: 'iam' as TabType, label: '🔐 IAM Roles', count: data.iam.length, color: 'green' },
+    { id: 'iam_users' as TabType, label: '👥 IAM Users', count: data.iam_users.length, color: 'indigo' },
+    { id: 'access_keys' as TabType, label: '🔑 Access Keys', count: data.access_keys.length, color: 'red' }
+  ];
+
+  const ec2Columns = [
+    { header: 'Instance ID', accessor: 'id', render: (value: string) => <span className="font-mono text-sm font-medium text-slate-900">{value}</span> },
+    {
+      header: 'State',
+      accessor: 'state',
+      render: (value: string) => (
+        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+          {value}
+        </span>
+      )
+    },
+    { header: 'Monthly Cost', accessor: 'cost', render: () => <span className="text-sm font-semibold text-green-600">$50.00</span> },
+    {
+      header: 'Actions',
+      accessor: 'actions',
+      render: () => (
+        <div className="flex gap-2">
+          <button className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded hover:bg-blue-200">Start</button>
+          <button className="px-3 py-1 text-xs font-medium bg-red-100 text-red-700 rounded hover:bg-red-200">Terminate</button>
+        </div>
+      )
+    }
+  ];
+
+  const ebsColumns = [
+    { header: 'Volume ID', accessor: 'id', render: (value: string) => <span className="font-mono text-sm font-medium text-slate-900">{value}</span> },
+    { header: 'Size', accessor: 'size', render: (value: number) => <span className="text-sm font-semibold text-slate-900">{value} GB</span> },
+    {
+      header: 'State',
+      accessor: 'state',
+      render: (value: string) => (
+        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800">
+          {value}
+        </span>
+      )
+    },
+    { header: 'Monthly Cost', accessor: 'cost', render: () => <span className="text-sm font-semibold text-green-600">$10.00</span> },
+    {
+      header: 'Actions',
+      accessor: 'actions',
+      render: () => <button className="px-3 py-1 text-xs font-medium bg-red-100 text-red-700 rounded hover:bg-red-200">Delete</button>
+    }
+  ];
+
+  const s3Columns = [
+    { header: 'Bucket Name', accessor: 'name', render: (value: string) => <span className="font-mono text-sm font-medium text-slate-900">{value}</span> },
+    {
+      header: 'Created',
+      accessor: 'creation_date',
+      render: (value: string) => <span className="text-sm text-slate-600">{new Date(value).toLocaleDateString()}</span>
+    },
+    { header: 'Monthly Cost', accessor: 'cost', render: () => <span className="text-sm font-semibold text-green-600">$5.00</span> },
+    {
+      header: 'Actions',
+      accessor: 'actions',
+      render: () => (
+        <div className="flex gap-2">
+          <button className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded hover:bg-blue-200">View</button>
+          <button className="px-3 py-1 text-xs font-medium bg-red-100 text-red-700 rounded hover:bg-red-200">Delete</button>
+        </div>
+      )
+    }
+  ];
+
+  const iamColumns = [
+    { header: 'Role Name', accessor: 'name', render: (value: string) => <span className="font-mono text-sm font-medium text-slate-900">{value}</span> },
+    {
+      header: 'Last Used',
+      accessor: 'last_used_date',
+      render: (value: string) => <span className="text-sm text-slate-600">{value ? new Date(value).toLocaleDateString() : 'Never'}</span>
+    },
+    {
+      header: 'Actions',
+      accessor: 'actions',
+      render: () => (
+        <div className="flex gap-2">
+          <button className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded hover:bg-blue-200">View</button>
+          <button className="px-3 py-1 text-xs font-medium bg-red-100 text-red-700 rounded hover:bg-red-200">Delete</button>
+        </div>
+      )
+    }
+  ];
+
+  const iamUsersColumns = [
+    { header: 'User Name', accessor: 'name', render: (value: string) => <span className="font-mono text-sm font-medium text-slate-900">{value}</span> },
+    {
+      header: 'Console Access',
+      accessor: 'has_console_access',
+      render: (value: boolean) => (
+        <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+          {value ? '✓ Yes' : '✗ No'}
+        </span>
+      )
+    },
+    {
+      header: 'Access Keys',
+      accessor: 'access_keys_count',
+      render: (value: number) => <span className="text-sm font-semibold text-slate-900">{value}</span>
+    },
+    {
+      header: 'Created',
+      accessor: 'create_date',
+      render: (value: string) => <span className="text-sm text-slate-600">{new Date(value).toLocaleDateString()}</span>
+    },
+    {
+      header: 'Actions',
+      accessor: 'actions',
+      render: () => (
+        <div className="flex gap-2">
+          <button className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded hover:bg-blue-200">View</button>
+          <button className="px-3 py-1 text-xs font-medium bg-red-100 text-red-700 rounded hover:bg-red-200">Delete</button>
+        </div>
+      )
+    }
+  ];
+
+  const accessKeysColumns = [
+    { header: 'Access Key ID', accessor: 'access_key_id', render: (value: string) => <span className="font-mono text-xs font-medium text-slate-900">{value.substring(0, 10)}...</span> },
+    { header: 'User Name', accessor: 'user_name', render: (value: string) => <span className="text-sm font-medium text-slate-900">{value}</span> },
+    {
+      header: 'Status',
+      accessor: 'status',
+      render: (value: string) => (
+        <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${value === 'Active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+          {value}
+        </span>
+      )
+    },
+    {
+      header: 'Last Used',
+      accessor: 'last_used_date',
+      render: (value: string) => <span className="text-sm text-slate-600">{value ? new Date(value).toLocaleDateString() : 'Never'}</span>
+    },
+    {
+      header: 'Security Risk',
+      accessor: 'security_risk',
+      render: (value: string) => (
+        <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${value === 'High' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
+          {value}
+        </span>
+      )
+    },
+    {
+      header: 'Actions',
+      accessor: 'actions',
+      render: () => (
+        <div className="flex gap-2">
+          <button className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded hover:bg-blue-200">Deactivate</button>
+          <button className="px-3 py-1 text-xs font-medium bg-red-100 text-red-700 rounded hover:bg-red-200">Delete</button>
+        </div>
+      )
+    }
+  ];
+
+  const resourceConfig = {
+    ec2: {
+      columns: ec2Columns,
+      data: data.ec2,
+      icon: '🖥️',
+      emptyTitle: 'No stopped EC2 instances',
+      emptyDescription: 'All your instances are running efficiently!'
+    },
+    ebs: {
+      columns: ebsColumns,
+      data: data.ebs,
+      icon: '💾',
+      emptyTitle: 'No unattached EBS volumes',
+      emptyDescription: 'All your volumes are properly attached!'
+    },
+    s3: {
+      columns: s3Columns,
+      data: data.s3,
+      icon: '🪣',
+      emptyTitle: 'No unused S3 buckets',
+      emptyDescription: 'All your buckets are being used!'
+    },
+    iam: {
+      columns: iamColumns,
+      data: data.iam,
+      icon: '🔐',
+      emptyTitle: 'No unused IAM roles',
+      emptyDescription: 'All your roles are actively being used!'
+    },
+    iam_users: {
+      columns: iamUsersColumns,
+      data: data.iam_users,
+      icon: '👥',
+      emptyTitle: 'No unused IAM users',
+      emptyDescription: 'All your users have recent activity!'
+    },
+    access_keys: {
+      columns: accessKeysColumns,
+      data: data.access_keys,
+      icon: '🔑',
+      emptyTitle: 'No unused access keys',
+      emptyDescription: 'All your access keys are being used regularly!'
+    }
+  };
+
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-semibold mb-4">AWS Cleanup Dashboard</h1>
-      
-      <div className="bg-white shadow rounded-lg p-4">
-        <h2 className="text-xl mb-2">Stopped EC2 Instances</h2>
-        
-        {loading && (
-          <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-            <span className="ml-3 text-gray-600">Loading instances...</span>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      {/* Header */}
+      <header className="bg-white border-b border-slate-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900">
+                ☁️ Cloud Cleaner Dashboard
+              </h1>
+              <p className="mt-1 text-sm text-slate-600">
+                Monitor and manage your AWS resources efficiently
+              </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-sm text-slate-600">Connected</span>
+            </div>
           </div>
-        )}
-        
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            <p className="font-semibold">Error:</p>
-            <p>{error}</p>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+          <StatCard title="EC2 Instances" value={data.ec2.length} icon="🖥️" bgColor="bg-blue-100" loading={loading} />
+          <StatCard title="EBS Volumes" value={data.ebs.length} icon="💾" bgColor="bg-purple-100" loading={loading} />
+          <StatCard title="S3 Buckets" value={data.s3.length} icon="🪣" bgColor="bg-orange-100" loading={loading} />
+          <StatCard title="IAM Roles" value={data.iam.length} icon="🔐" bgColor="bg-green-100" loading={loading} />
+          <StatCard title="IAM Users" value={data.iam_users.length} icon="👥" bgColor="bg-indigo-100" loading={loading} />
+          <StatCard title="Access Keys" value={data.access_keys.length} icon="🔑" bgColor="bg-red-100" loading={loading} />
+        </div>
+
+        {/* Savings Card */}
+        <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl shadow-lg p-6 mb-8 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-green-100">Potential Monthly Savings</p>
+              <p className="text-4xl font-bold mt-2">
+                ${loading ? "..." : totalSavings.toFixed(2)}
+              </p>
+              <p className="text-sm text-green-100 mt-2">
+                By cleaning up {data.ec2.length + data.ebs.length + data.s3.length} unused resources
+              </p>
+            </div>
+            <div className="h-20 w-20 bg-white/20 rounded-lg flex items-center justify-center">
+              <span className="text-5xl">💰</span>
+            </div>
           </div>
-        )}
-        
-        {!loading && !error && ec2.length === 0 && (
-          <p className="text-gray-500 py-4">No stopped EC2 instances found.</p>
-        )}
-        
-        {!loading && !error && ec2.length > 0 && (
-          <ul>
-            {ec2.map((instance) => (
-              <li key={instance.id} className="border-b py-2 flex justify-between items-center">
-                <span className="font-mono text-sm">{instance.id}</span>
-                <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                  {instance.state}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="border-b border-slate-200 overflow-x-auto">
+            <nav className="flex -mb-px">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-4 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                    activeTab === tab.id
+                      ? `border-${tab.color}-500 text-${tab.color}-600`
+                      : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
+                  }`}
+                >
+                  {tab.label} ({tab.count})
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          <div className="p-6 h-96 overflow-auto">
+            <ResourceTab
+              loading={loading}
+              error={error}
+              {...resourceConfig[activeTab]}
+            />
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
