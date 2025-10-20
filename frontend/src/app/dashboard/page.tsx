@@ -2,6 +2,9 @@
 import { useEffect, useState } from "react";
 import StatCard from "@/components/StatCard";
 import ResourceTab from "@/components/ResourceTab";
+import NotificationCenter from "@/components/NotificationCenter";
+import AlertPanel from "@/components/AlertPanel";
+import { useNotifications } from "@/hooks/useNotifications";
 
 interface EC2Instance {
   id: string;
@@ -71,6 +74,7 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('ec2');
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8084/api";
+  const { notifications, addNotification, dismissNotification } = useNotifications();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -88,7 +92,7 @@ export default function Dashboard() {
         ];
 
         const results = await Promise.allSettled(
-          endpoints.map(ep => fetch(ep.url))
+          endpoints.map(ep => fetch(ep?.url))
         );
 
         const newData: DashboardData = {
@@ -134,9 +138,33 @@ export default function Dashboard() {
 
         if (hasError && errors.length > 0) {
           setError(`Some resources failed to load: ${errors.join(', ')}`);
+          addNotification({
+            type: 'warning',
+            title: 'Partial Data Load',
+            message: `Some resources failed to load: ${errors.join(', ')}`,
+            duration: 6000
+          });
+        } else {
+          // Show success notification with summary
+          const totalResources = Object.values(newData).reduce((sum, arr) => sum + arr.length, 0);
+          if (totalResources > 0) {
+            addNotification({
+              type: 'success',
+              title: 'Resources Loaded',
+              message: `Found ${totalResources} unused resources across your AWS account`,
+              duration: 4000
+            });
+          }
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to fetch data");
+        const errorMsg = err instanceof Error ? err.message : "Failed to fetch data";
+        setError(errorMsg);
+        addNotification({
+          type: 'error',
+          title: 'Failed to Load Resources',
+          message: errorMsg,
+          duration: 6000
+        });
         console.error("Error fetching data:", err);
       } finally {
         setLoading(false);
@@ -144,7 +172,7 @@ export default function Dashboard() {
     };
 
     fetchData();
-  }, [apiUrl]);
+  }, [apiUrl, addNotification]);
 
   const totalSavings = (data.ec2.length * 50) + (data.ebs.length * 10) + (data.s3.length * 5);
 
@@ -358,6 +386,12 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      {/* Notification Center */}
+      <NotificationCenter
+        notifications={notifications}
+        onDismiss={dismissNotification}
+      />
+
       {/* Header */}
       <header className="bg-white border-b border-slate-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -407,6 +441,25 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* Alert Panel */}
+        <AlertPanel
+          resourceCounts={{
+            ec2: data.ec2.length,
+            ebs: data.ebs.length,
+            s3: data.s3.length,
+            iam_users: data.iam_users.length,
+            access_keys: data.access_keys.length
+          }}
+          onAlertSent={() => {
+            addNotification({
+              type: 'success',
+              title: 'Alert Sent',
+              message: 'Resource summary has been sent to your configured channels',
+              duration: 4000
+            });
+          }}
+        />
 
         {/* Tabs */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
