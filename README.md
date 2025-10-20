@@ -63,9 +63,107 @@ cloud-cleaner-dashboard/
 ### Prerequisites
 
 - Python 3.13+
-- Node.js 22+
+- Node.js 18+
 - AWS Account with appropriate credentials
 - AWS CLI configured (optional)
+- Docker and Docker Compose (optional, for containerized deployment)
+
+## Deployment Options
+
+You can run this application in two ways:
+1. **Local Development** - Run backend and frontend separately
+2. **Docker Deployment** - Run both services using Docker Compose
+
+---
+
+## Docker Deployment (Recommended)
+
+### Quick Start with Docker Compose
+
+1. **Clone the repository and navigate to the project directory**
+
+2. **Configure environment variables**:
+   
+   Create `.env` files in both backend and frontend directories:
+   
+   **backend/.env**:
+   ```env
+   AWS_ACCESS_KEY_ID=your_access_key_here
+   AWS_SECRET_ACCESS_KEY=your_secret_key_here
+   AWS_REGION=ap-south-1
+   SLACK_WEBHOOK_URL=https://hooks.slack.com/services/XXX/YYY/ZZZ
+   PORT=8084
+   HOST=0.0.0.0
+   DEBUG=false
+   ```
+   
+   **frontend/.env**:
+   ```env
+   NEXT_PUBLIC_API_URL=http://localhost:8084/api
+   ```
+
+3. **Build and start all services**:
+   ```bash
+   docker-compose up -d
+   ```
+
+4. **Access the application**:
+   - Frontend: [http://localhost:3000/dashboard](http://localhost:3000/dashboard)
+   - Backend API: [http://localhost:8084](http://localhost:8084)
+   - API Documentation: [http://localhost:8084/docs](http://localhost:8084/docs)
+
+5. **View logs**:
+   ```bash
+   # All services
+   docker-compose logs -f
+   
+   # Specific service
+   docker-compose logs -f backend
+   docker-compose logs -f frontend
+   ```
+
+6. **Stop services**:
+   ```bash
+   docker-compose down
+   ```
+
+7. **Rebuild after code changes**:
+   ```bash
+   docker-compose up -d --build
+   ```
+
+### Docker Commands Reference
+
+```bash
+# Start services in detached mode
+docker-compose up -d
+
+# Start services with build
+docker-compose up -d --build
+
+# Stop services
+docker-compose down
+
+# Stop and remove volumes
+docker-compose down -v
+
+# View logs
+docker-compose logs -f
+
+# Check service status
+docker-compose ps
+
+# Restart a specific service
+docker-compose restart backend
+
+# Execute commands in running container
+docker-compose exec backend python -c "print('Hello')"
+docker-compose exec frontend npm run lint
+```
+
+---
+
+## Local Development Setup
 
 ### Backend Setup
 
