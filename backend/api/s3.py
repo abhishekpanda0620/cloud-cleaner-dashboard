@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from typing import List, Dict, Any
 from datetime import datetime, timezone, timedelta
 from core.aws_client import get_s3_client
+from core.cache import cached, invalidate_cache
 import logging
 
 logger = logging.getLogger(__name__)
@@ -9,6 +10,7 @@ router = APIRouter()
 
 
 @router.get("/unused")
+@cached(ttl_minutes=5, key_prefix="s3")
 async def get_unused_s3_buckets() -> Dict[str, List[Dict[str, Any]]]:
     """
     Get list of S3 buckets that haven't been accessed in 90+ days
@@ -67,6 +69,7 @@ async def get_unused_s3_buckets() -> Dict[str, List[Dict[str, Any]]]:
 
 
 @router.get("/all")
+@cached(ttl_minutes=5, key_prefix="s3")
 async def get_all_buckets() -> Dict[str, List[Dict[str, Any]]]:
     """
     Get list of all S3 buckets
@@ -113,6 +116,7 @@ async def get_all_buckets() -> Dict[str, List[Dict[str, Any]]]:
 
 
 @router.get("/{bucket_name}")
+@cached(ttl_minutes=10, key_prefix="s3")
 async def get_bucket_details(bucket_name: str) -> Dict[str, Any]:
     """
     Get detailed information about a specific S3 bucket
@@ -295,6 +299,9 @@ async def delete_bucket(bucket_name: str, force: bool = False) -> Dict[str, Any]
         s3_client.delete_bucket(Bucket=bucket_name)
         
         logger.info(f"Deleted bucket {bucket_name}")
+        
+        # Invalidate S3 cache after deletion
+        invalidate_cache("s3")
         
         return {
             "success": True,

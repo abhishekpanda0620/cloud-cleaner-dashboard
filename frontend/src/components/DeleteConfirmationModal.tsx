@@ -94,16 +94,19 @@ export default function DeleteConfirmationModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-[9999] overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        {/* Background overlay */}
+        {/* Background overlay with blur */}
         <div
-          className="fixed inset-0 transition-opacity bg-gray-900 bg-opacity-75"
+          className="fixed inset-0 transition-opacity backdrop-blur-sm bg-black/30"
           onClick={handleClose}
         />
 
+        {/* Center alignment helper */}
+        <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true"></span>
+
         {/* Modal panel */}
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full relative z-10">
           {/* Header */}
           <div className="bg-red-600 px-6 py-4">
             <div className="flex items-center">

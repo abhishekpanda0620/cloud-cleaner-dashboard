@@ -1,6 +1,8 @@
-from fastapi import APIRouter, HTTPException
-from typing import List, Dict, Any
-from core.aws_client import get_ebs_client
+from fastapi import APIRouter, HTTPException, Query
+from typing import List, Dict, Any, Optional, Union
+from core.aws_client import get_aws_client_factory
+from core.cache import cached, invalidate_cache
+from core.config import settings
 import logging
 
 logger = logging.getLogger(__name__)
@@ -8,15 +10,24 @@ router = APIRouter()
 
 
 @router.get("/unused")
-async def get_unused_ebs() -> Dict[str, List[Dict[str, Any]]]:
+@cached(ttl_minutes=5, key_prefix="ebs")
+async def get_unused_ebs(region: Optional[str] = Query(None)) -> Dict[str, Union[List[Dict[str, Any]], str]]:
     """
     Get list of unattached EBS volumes (potential cleanup candidates)
+    
+    Args:
+        region: AWS region to scan (optional, defaults to configured region)
     
     Returns:
         Dictionary containing list of unused EBS volumes
     """
     try:
-        ec2_client = get_ebs_client()
+        # Use provided region or default from settings
+        target_region = region or settings.aws_region
+        
+        # Get EC2 client for specific region (EBS uses EC2 client)
+        factory = get_aws_client_factory()
+        ec2_client = factory.session.client('ec2', region_name=target_region)
         
         # Get all volumes
         response = ec2_client.describe_volumes(
@@ -47,8 +58,8 @@ async def get_unused_ebs() -> Dict[str, List[Dict[str, Any]]]:
                 "create_time": create_time.isoformat() if create_time else None
             })
         
-        logger.info(f"Found {len(unused_volumes)} unused EBS volumes")
-        return {"unused_volumes": unused_volumes}
+        logger.info(f"Found {len(unused_volumes)} unused EBS volumes in region {target_region}")
+        return {"unused_volumes": unused_volumes, "region": target_region}
         
     except Exception as e:
         logger.error(f"Error fetching unused EBS volumes: {str(e)}")
@@ -59,15 +70,24 @@ async def get_unused_ebs() -> Dict[str, List[Dict[str, Any]]]:
 
 
 @router.get("/all")
-async def get_all_volumes() -> Dict[str, List[Dict[str, Any]]]:
+@cached(ttl_minutes=5, key_prefix="ebs")
+async def get_all_volumes(region: Optional[str] = Query(None)) -> Dict[str, Union[List[Dict[str, Any]], str]]:
     """
     Get list of all EBS volumes
+    
+    Args:
+        region: AWS region to scan (optional, defaults to configured region)
     
     Returns:
         Dictionary containing list of all EBS volumes
     """
     try:
-        ec2_client = get_ebs_client()
+        # Use provided region or default from settings
+        target_region = region or settings.aws_region
+        
+        # Get EC2 client for specific region (EBS uses EC2 client)
+        factory = get_aws_client_factory()
+        ec2_client = factory.session.client('ec2', region_name=target_region)
         response = ec2_client.describe_volumes()
         
         volumes = []
@@ -97,8 +117,8 @@ async def get_all_volumes() -> Dict[str, List[Dict[str, Any]]]:
                 "attached_to": attached_to
             })
         
-        logger.info(f"Found {len(volumes)} total EBS volumes")
-        return {"volumes": volumes}
+        logger.info(f"Found {len(volumes)} total EBS volumes in region {target_region}")
+        return {"volumes": volumes, "region": target_region}
         
     except Exception as e:
         logger.error(f"Error fetching all EBS volumes: {str(e)}")
@@ -109,6 +129,7 @@ async def get_all_volumes() -> Dict[str, List[Dict[str, Any]]]:
 
 
 @router.get("/{volume_id}")
+@cached(ttl_minutes=10, key_prefix="ebs")
 async def get_volume_details(volume_id: str) -> Dict[str, Any]:
     """
     Get detailed information about a specific EBS volume
@@ -120,7 +141,8 @@ async def get_volume_details(volume_id: str) -> Dict[str, Any]:
         Dictionary containing detailed volume information
     """
     try:
-        ec2_client = get_ebs_client()
+        factory = get_aws_client_factory()
+        ec2_client = factory.session.client('ec2', region_name=settings.aws_region)
         
         response = ec2_client.describe_volumes(VolumeIds=[volume_id])
         
@@ -191,7 +213,8 @@ async def delete_volume(volume_id: str) -> Dict[str, Any]:
         Dictionary containing deletion status
     """
     try:
-        ec2_client = get_ebs_client()
+        factory = get_aws_client_factory()
+        ec2_client = factory.session.client('ec2', region_name=settings.aws_region)
         
         # First verify the volume exists and is available
         response = ec2_client.describe_volumes(VolumeIds=[volume_id])
@@ -215,6 +238,9 @@ async def delete_volume(volume_id: str) -> Dict[str, Any]:
         ec2_client.delete_volume(VolumeId=volume_id)
         
         logger.info(f"Deleted volume {volume_id}")
+        
+        # Invalidate EBS cache after deletion
+        invalidate_cache("ebs")
         
         return {
             "success": True,

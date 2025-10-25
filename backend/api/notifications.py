@@ -10,6 +10,7 @@ from email.mime.multipart import MIMEMultipart
 import requests
 from datetime import datetime
 from core.config import settings
+from core.aws_client import get_aws_client_factory
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -48,6 +49,49 @@ def send_slack_notification(webhook_url: str, message: str, resource_data: Dict[
         True if successful, False otherwise
     """
     try:
+        # Build regional breakdown for EC2 and EBS
+        regional_fields = []
+        
+        # Add EC2 regional breakdown
+        ec2_by_region = resource_data.get('ec2_by_region', {})
+        if ec2_by_region:
+            ec2_text = "*EC2 Instances:*\n"
+            for region, count in ec2_by_region.items():
+                ec2_text += f"• {region}: {count}\n"
+            ec2_text += f"*Total: {resource_data.get('ec2_count', 0)}*"
+            regional_fields.append({"type": "mrkdwn", "text": ec2_text})
+        else:
+            regional_fields.append({
+                "type": "mrkdwn",
+                "text": f"*EC2 Instances:*\n{resource_data.get('ec2_count', 0)}"
+            })
+        
+        # Add EBS regional breakdown
+        ebs_by_region = resource_data.get('ebs_by_region', {})
+        if ebs_by_region:
+            ebs_text = "*EBS Volumes:*\n"
+            for region, count in ebs_by_region.items():
+                ebs_text += f"• {region}: {count}\n"
+            ebs_text += f"*Total: {resource_data.get('ebs_count', 0)}*"
+            regional_fields.append({"type": "mrkdwn", "text": ebs_text})
+        else:
+            regional_fields.append({
+                "type": "mrkdwn",
+                "text": f"*EBS Volumes:*\n{resource_data.get('ebs_count', 0)}"
+            })
+        
+        # Add global resources
+        regional_fields.extend([
+            {
+                "type": "mrkdwn",
+                "text": f"*S3 Buckets:*\n{resource_data.get('s3_count', 0)}"
+            },
+            {
+                "type": "mrkdwn",
+                "text": f"*IAM Users:*\n{resource_data.get('iam_users_count', 0)}"
+            }
+        ])
+        
         payload = {
             "text": message,
             "blocks": [
@@ -67,24 +111,7 @@ def send_slack_notification(webhook_url: str, message: str, resource_data: Dict[
                 },
                 {
                     "type": "section",
-                    "fields": [
-                        {
-                            "type": "mrkdwn",
-                            "text": f"*EC2 Instances:*\n{resource_data.get('ec2_count', 0)}"
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": f"*EBS Volumes:*\n{resource_data.get('ebs_count', 0)}"
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": f"*S3 Buckets:*\n{resource_data.get('s3_count', 0)}"
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": f"*IAM Users:*\n{resource_data.get('iam_users_count', 0)}"
-                        }
-                    ]
+                    "fields": regional_fields
                 },
                 {
                     "type": "section",
@@ -134,6 +161,23 @@ def send_email_notification(
         True if successful, False otherwise
     """
     try:
+        # Build regional breakdown HTML for EC2 and EBS
+        ec2_regional_html = ""
+        ec2_by_region = resource_data.get('ec2_by_region', {})
+        if ec2_by_region:
+            ec2_regional_html = "<ul style='margin: 5px 0; padding-left: 20px;'>"
+            for region, count in ec2_by_region.items():
+                ec2_regional_html += f"<li>{region}: {count}</li>"
+            ec2_regional_html += "</ul>"
+        
+        ebs_regional_html = ""
+        ebs_by_region = resource_data.get('ebs_by_region', {})
+        if ebs_by_region:
+            ebs_regional_html = "<ul style='margin: 5px 0; padding-left: 20px;'>"
+            for region, count in ebs_by_region.items():
+                ebs_regional_html += f"<li>{region}: {count}</li>"
+            ebs_regional_html += "</ul>"
+        
         # Create HTML email body
         html_body = f"""
         <html>
@@ -147,6 +191,7 @@ def send_email_notification(
                     .resource-card {{ background-color: white; padding: 15px; border-radius: 8px; border-left: 4px solid #3b82f6; }}
                     .resource-card h3 {{ margin: 0 0 10px 0; color: #1e293b; }}
                     .resource-card .count {{ font-size: 24px; font-weight: bold; color: #3b82f6; }}
+                    .resource-card .regional-breakdown {{ font-size: 12px; color: #64748b; margin-top: 8px; }}
                     .savings {{ background-color: #dcfce7; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center; }}
                     .savings h2 {{ margin: 0; color: #166534; }}
                     .footer {{ text-align: center; padding: 20px; color: #64748b; font-size: 12px; }}
@@ -161,28 +206,30 @@ def send_email_notification(
                     
                     <div class="content">
                         <p>Hello,</p>
-                        <p>Your Cloud Cleaner Dashboard has detected unused AWS resources that could help reduce costs.</p>
+                        <p>Your Cloud Cleaner Dashboard has detected unused AWS resources across multiple regions that could help reduce costs.</p>
                         
                         <div class="resource-grid">
                             <div class="resource-card">
                                 <h3>🖥️ EC2 Instances</h3>
                                 <div class="count">{resource_data.get('ec2_count', 0)}</div>
                                 <p>Stopped instances</p>
+                                {f'<div class="regional-breakdown"><strong>By Region:</strong>{ec2_regional_html}</div>' if ec2_regional_html else ''}
                             </div>
                             <div class="resource-card">
                                 <h3>💾 EBS Volumes</h3>
                                 <div class="count">{resource_data.get('ebs_count', 0)}</div>
                                 <p>Unattached volumes</p>
+                                {f'<div class="regional-breakdown"><strong>By Region:</strong>{ebs_regional_html}</div>' if ebs_regional_html else ''}
                             </div>
                             <div class="resource-card">
                                 <h3>🪣 S3 Buckets</h3>
                                 <div class="count">{resource_data.get('s3_count', 0)}</div>
-                                <p>Unused buckets</p>
+                                <p>Unused buckets (Global)</p>
                             </div>
                             <div class="resource-card">
                                 <h3>👥 IAM Users</h3>
                                 <div class="count">{resource_data.get('iam_users_count', 0)}</div>
-                                <p>Inactive users</p>
+                                <p>Inactive users (Global)</p>
                             </div>
                         </div>
                         
@@ -227,10 +274,89 @@ def send_email_notification(
         return False
 
 
+async def fetch_all_regions_data() -> Dict[str, Any]:
+    """
+    Fetch EC2 and EBS data from all AWS regions
+    
+    Returns:
+        Dictionary with aggregated resource counts and regional breakdown
+    """
+    try:
+        factory = get_aws_client_factory()
+        
+        # Get list of all enabled regions
+        ec2_client = factory.session.client('ec2', region_name=settings.aws_region)
+        regions_response = ec2_client.describe_regions(
+            Filters=[{'Name': 'opt-in-status', 'Values': ['opt-in-not-required', 'opted-in']}]
+        )
+        regions = [region['RegionName'] for region in regions_response['Regions']]
+        
+        logger.info(f"Scanning {len(regions)} regions for unused resources")
+        
+        ec2_by_region = {}
+        ebs_by_region = {}
+        total_ec2 = 0
+        total_ebs = 0
+        
+        # Scan each region
+        for region in regions:
+            try:
+                regional_ec2_client = factory.session.client('ec2', region_name=region)
+                
+                # Get stopped EC2 instances
+                ec2_response = regional_ec2_client.describe_instances(
+                    Filters=[{'Name': 'instance-state-name', 'Values': ['stopped']}]
+                )
+                
+                ec2_count = 0
+                for reservation in ec2_response.get('Reservations', []):
+                    for instance in reservation.get('Instances', []):
+                        state_transition_reason = instance.get('StateTransitionReason', '')
+                        if 'User initiated' in state_transition_reason:
+                            ec2_count += 1
+                
+                if ec2_count > 0:
+                    ec2_by_region[region] = ec2_count
+                    total_ec2 += ec2_count
+                
+                # Get unattached EBS volumes
+                ebs_response = regional_ec2_client.describe_volumes(
+                    Filters=[{'Name': 'status', 'Values': ['available']}]
+                )
+                
+                ebs_count = len(ebs_response.get('Volumes', []))
+                if ebs_count > 0:
+                    ebs_by_region[region] = ebs_count
+                    total_ebs += ebs_count
+                
+                logger.info(f"Region {region}: {ec2_count} EC2, {ebs_count} EBS")
+                
+            except Exception as e:
+                logger.warning(f"Failed to scan region {region}: {str(e)}")
+                continue
+        
+        return {
+            'ec2_count': total_ec2,
+            'ebs_count': total_ebs,
+            'ec2_by_region': ec2_by_region,
+            'ebs_by_region': ebs_by_region
+        }
+        
+    except Exception as e:
+        logger.error(f"Error fetching multi-region data: {str(e)}")
+        return {
+            'ec2_count': 0,
+            'ebs_count': 0,
+            'ec2_by_region': {},
+            'ebs_by_region': {}
+        }
+
+
 @router.post("/send-alert")
 async def send_alert(alert: ResourceAlert) -> Dict[str, Any]:
     """
     Send resource alert via configured channels (Slack, Email)
+    Scans all regions for EC2 and EBS resources
     
     Args:
         alert: Resource alert data
@@ -251,13 +377,22 @@ async def send_alert(alert: ResourceAlert) -> Dict[str, Any]:
             'message': 'Alert sent'
         }
         
+        # Fetch EC2 and EBS data from all regions
+        logger.info("Fetching EC2 and EBS data from all regions...")
+        regional_data = await fetch_all_regions_data()
+        
+        # Use regional data for EC2 and EBS, use provided data for global resources
         resource_data = {
-            'ec2_count': alert.details.get('ec2_count', 0),
-            'ebs_count': alert.details.get('ebs_count', 0),
+            'ec2_count': regional_data['ec2_count'],
+            'ebs_count': regional_data['ebs_count'],
+            'ec2_by_region': regional_data['ec2_by_region'],
+            'ebs_by_region': regional_data['ebs_by_region'],
             's3_count': alert.details.get('s3_count', 0),
             'iam_users_count': alert.details.get('iam_users_count', 0),
-            'total_savings': alert.estimated_savings
+            'total_savings': (regional_data['ec2_count'] * 50) + (regional_data['ebs_count'] * 10) + (alert.details.get('s3_count', 0) * 5)
         }
+        
+        logger.info(f"Multi-region scan complete: {resource_data['ec2_count']} EC2 across {len(resource_data['ec2_by_region'])} regions, {resource_data['ebs_count']} EBS across {len(resource_data['ebs_by_region'])} regions")
         
         # Determine which channels to send to
         send_slack = alert.channel is None or alert.channel == 'slack'
@@ -266,7 +401,8 @@ async def send_alert(alert: ResourceAlert) -> Dict[str, Any]:
         # Send Slack notification
         if send_slack and slack_webhook:
             logger.info(f"Sending Slack notification to webhook")
-            message = f"🚨 Found {alert.count} unused AWS resources! Potential savings: ${alert.estimated_savings:.2f}/month"
+            total_resources = resource_data['ec2_count'] + resource_data['ebs_count'] + resource_data['s3_count'] + resource_data['iam_users_count']
+            message = f"🚨 Found {total_resources} unused AWS resources across multiple regions! Potential savings: ${resource_data['total_savings']:.2f}/month"
             results['slack_sent'] = send_slack_notification(slack_webhook, message, resource_data)
         elif send_slack and not slack_webhook:
             logger.warning("Slack notification requested but SLACK_WEBHOOK_URL not configured")

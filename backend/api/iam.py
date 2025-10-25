@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from typing import List, Dict, Any
 from datetime import datetime, timezone, timedelta
 from core.aws_client import get_iam_client
+from core.cache import cached, invalidate_cache
 import logging
 
 logger = logging.getLogger(__name__)
@@ -9,6 +10,7 @@ router = APIRouter()
 
 
 @router.get("/unused")
+@cached(ttl_minutes=5, key_prefix="iam")
 async def get_unused_iam_roles() -> Dict[str, List[Dict[str, Any]]]:
     """
     Get list of IAM roles that haven't been used in 90+ days
@@ -68,6 +70,7 @@ async def get_unused_iam_roles() -> Dict[str, List[Dict[str, Any]]]:
 
 
 @router.get("/all")
+@cached(ttl_minutes=5, key_prefix="iam")
 async def get_all_roles() -> Dict[str, List[Dict[str, Any]]]:
     """
     Get list of all IAM roles
@@ -122,6 +125,7 @@ async def get_all_roles() -> Dict[str, List[Dict[str, Any]]]:
 
 
 @router.get("/users/unused")
+@cached(ttl_minutes=5, key_prefix="iam")
 async def get_unused_iam_users() -> Dict[str, List[Dict[str, Any]]]:
     """
     Get list of IAM users with no console or programmatic access in 90+ days
@@ -206,6 +210,7 @@ async def get_unused_iam_users() -> Dict[str, List[Dict[str, Any]]]:
 
 
 @router.get("/access-keys/unused")
+@cached(ttl_minutes=5, key_prefix="iam")
 async def get_unused_access_keys() -> Dict[str, List[Dict[str, Any]]]:
     """
     Get list of access keys that haven't been used in 90+ days
@@ -277,6 +282,7 @@ async def get_unused_access_keys() -> Dict[str, List[Dict[str, Any]]]:
 
 
 @router.get("/roles/{role_name}")
+@cached(ttl_minutes=10, key_prefix="iam")
 async def get_role_details(role_name: str) -> Dict[str, Any]:
     """
     Get detailed information about a specific IAM role
@@ -419,6 +425,9 @@ async def delete_role(role_name: str, force: bool = False) -> Dict[str, Any]:
         
         logger.info(f"Deleted role {role_name}")
         
+        # Invalidate IAM cache after deletion
+        invalidate_cache("iam")
+        
         return {
             "success": True,
             "role_name": role_name,
@@ -436,6 +445,7 @@ async def delete_role(role_name: str, force: bool = False) -> Dict[str, Any]:
 
 
 @router.get("/users/{user_name}")
+@cached(ttl_minutes=10, key_prefix="iam")
 async def get_user_details(user_name: str) -> Dict[str, Any]:
     """
     Get detailed information about a specific IAM user
@@ -623,6 +633,9 @@ async def delete_user(user_name: str, force: bool = False) -> Dict[str, Any]:
         iam_client.delete_user(UserName=user_name)
         
         logger.info(f"Deleted user {user_name}")
+        
+        # Invalidate IAM cache after deletion
+        invalidate_cache("iam")
         
         return {
             "success": True,

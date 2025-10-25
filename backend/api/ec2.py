@@ -1,7 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from datetime import datetime, timezone, timedelta
-from typing import List, Dict, Any
-from core.aws_client import get_ec2_client
+from typing import List, Dict, Any, Optional, Union
+from core.aws_client import get_aws_client_factory
+from core.cache import cached, invalidate_cache
+from core.config import settings
 import logging
 
 logger = logging.getLogger(__name__)
@@ -9,15 +11,24 @@ router = APIRouter()
 
 
 @router.get("/unused")
-async def get_unused_instances() -> Dict[str, List[Dict[str, Any]]]:
+@cached(ttl_minutes=5, key_prefix="ec2")
+async def get_unused_instances(region: Optional[str] = Query(None)) -> Dict[str, Union[List[Dict[str, Any]], str]]:
     """
     Get list of stopped EC2 instances that have been stopped for more than 7 days
+    
+    Args:
+        region: AWS region to scan (optional, defaults to configured region)
     
     Returns:
         Dictionary containing list of unused EC2 instances
     """
     try:
-        ec2_client = get_ec2_client()
+        # Use provided region or default from settings
+        target_region = region or settings.aws_region
+        
+        # Get EC2 client for specific region
+        factory = get_aws_client_factory()
+        ec2_client = factory.session.client('ec2', region_name=target_region)
         
         # Get all stopped instances
         response = ec2_client.describe_instances(
@@ -52,8 +63,8 @@ async def get_unused_instances() -> Dict[str, List[Dict[str, Any]]]:
                         "state_reason": state_transition_reason
                     })
         
-        logger.info(f"Found {len(unused)} unused EC2 instances")
-        return {"unused_instances": unused}
+        logger.info(f"Found {len(unused)} unused EC2 instances in region {target_region}")
+        return {"unused_instances": unused, "region": target_region}
         
     except Exception as e:
         logger.error(f"Error fetching unused EC2 instances: {str(e)}")
@@ -64,15 +75,24 @@ async def get_unused_instances() -> Dict[str, List[Dict[str, Any]]]:
 
 
 @router.get("/all")
-async def get_all_instances() -> Dict[str, List[Dict[str, Any]]]:
+@cached(ttl_minutes=5, key_prefix="ec2")
+async def get_all_instances(region: Optional[str] = Query(None)) -> Dict[str, Union[List[Dict[str, Any]], str]]:
     """
     Get list of all EC2 instances
+    
+    Args:
+        region: AWS region to scan (optional, defaults to configured region)
     
     Returns:
         Dictionary containing list of all EC2 instances
     """
     try:
-        ec2_client = get_ec2_client()
+        # Use provided region or default from settings
+        target_region = region or settings.aws_region
+        
+        # Get EC2 client for specific region
+        factory = get_aws_client_factory()
+        ec2_client = factory.session.client('ec2', region_name=target_region)
         response = ec2_client.describe_instances()
         
         instances = []
@@ -96,8 +116,8 @@ async def get_all_instances() -> Dict[str, List[Dict[str, Any]]]:
                     "state": state
                 })
         
-        logger.info(f"Found {len(instances)} total EC2 instances")
-        return {"instances": instances}
+        logger.info(f"Found {len(instances)} total EC2 instances in region {target_region}")
+        return {"instances": instances, "region": target_region}
         
     except Exception as e:
         logger.error(f"Error fetching all EC2 instances: {str(e)}")
@@ -108,6 +128,7 @@ async def get_all_instances() -> Dict[str, List[Dict[str, Any]]]:
 
 
 @router.get("/{instance_id}")
+@cached(ttl_minutes=10, key_prefix="ec2")
 async def get_instance_details(instance_id: str) -> Dict[str, Any]:
     """
     Get detailed information about a specific EC2 instance
@@ -119,7 +140,8 @@ async def get_instance_details(instance_id: str) -> Dict[str, Any]:
         Dictionary containing detailed instance information
     """
     try:
-        ec2_client = get_ec2_client()
+        factory = get_aws_client_factory()
+        ec2_client = factory.session.client('ec2', region_name=settings.aws_region)
         
         response = ec2_client.describe_instances(InstanceIds=[instance_id])
         
@@ -210,7 +232,8 @@ async def terminate_instance(instance_id: str) -> Dict[str, Any]:
         Dictionary containing termination status
     """
     try:
-        ec2_client = get_ec2_client()
+        factory = get_aws_client_factory()
+        ec2_client = factory.session.client('ec2', region_name=settings.aws_region)
         
         # First verify the instance exists and get its current state
         response = ec2_client.describe_instances(InstanceIds=[instance_id])
@@ -229,6 +252,9 @@ async def terminate_instance(instance_id: str) -> Dict[str, Any]:
         current_state = terminated_instance['CurrentState']['Name']
         
         logger.info(f"Terminated instance {instance_id} (previous state: {previous_state}, current state: {current_state})")
+        
+        # Invalidate EC2 cache after deletion
+        invalidate_cache("ec2")
         
         return {
             "success": True,

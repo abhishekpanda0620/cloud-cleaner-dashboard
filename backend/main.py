@@ -1,7 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from api import ec2, ebs, s3, iam, notifications
 from core.config import settings
+from core.aws_client import get_aws_client_factory
+from core.cache import cached
 import logging
 import sys
 
@@ -80,6 +82,53 @@ async def health_check():
         "status": "healthy",
         "region": settings.aws_region
     }
+
+
+@app.get("/api/regions")
+@cached(ttl_minutes=10080, key_prefix="regions")  # 7 days = 10080 minutes
+async def get_regions():
+    """
+    Get AWS regions information from AWS API
+    Cached for 7 days as regions rarely change
+    """
+    try:
+        # Get EC2 client to fetch regions
+        factory = get_aws_client_factory()
+        ec2_client = factory.session.client('ec2', region_name=settings.aws_region)
+        
+        # Describe all available regions
+        response = ec2_client.describe_regions(AllRegions=False)  # Only enabled regions
+        
+        regions = []
+        for region in response.get('Regions', []):
+            region_code = region.get('RegionName')
+            region_name = region.get('OptInStatus')
+            
+            # Create a friendly name from the region code
+            friendly_name = region_code.replace('-', ' ').title()
+            
+            regions.append({
+                "code": region_code,
+                "name": friendly_name,
+                "endpoint": region.get('Endpoint', '')
+            })
+        
+        # Sort regions by code for consistency
+        regions.sort(key=lambda x: x['code'])
+        
+        logger.info(f"Retrieved {len(regions)} AWS regions")
+        
+        return {
+            "default_region": settings.aws_region,
+            "regions": regions
+        }
+        
+    except Exception as e:
+        logger.error(f"Error fetching AWS regions: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch AWS regions: {str(e)}"
+        )
 
 
 if __name__ == "__main__":
