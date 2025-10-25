@@ -477,15 +477,4 @@ For issues and questions:
 
 ## Changelog
 
-### Version 1.0.0 (Current)
-- ✅ Python 3.13 support
-- ✅ Docker & Docker Compose support
-- ✅ Modular frontend architecture
-- ✅ Slack notifications
-- ✅ Email notifications
-- ✅ Separate Alert Buttons (Slack & Email)
-- ✅ Alert Panel UI component
-- ✅ IAM user and access key monitoring
-- ✅ Comprehensive error handling
-- ✅ Professional UI/UX
-- ✅ Complete documentation
+**See [RELEASES.md](RELEASES.md) for detailed release notes.**
