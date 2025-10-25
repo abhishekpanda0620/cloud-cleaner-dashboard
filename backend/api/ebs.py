@@ -130,19 +130,23 @@ async def get_all_volumes(region: Optional[str] = Query(None)) -> Dict[str, Unio
 
 @router.get("/{volume_id}")
 @cached(ttl_minutes=10, key_prefix="ebs")
-async def get_volume_details(volume_id: str) -> Dict[str, Any]:
+async def get_volume_details(volume_id: str, region: Optional[str] = Query(None)) -> Dict[str, Any]:
     """
     Get detailed information about a specific EBS volume
     
     Args:
         volume_id: The EBS volume ID
+        region: AWS region where the volume exists (optional, defaults to configured region)
         
     Returns:
         Dictionary containing detailed volume information
     """
     try:
+        # Use provided region or default from settings
+        target_region = region or settings.aws_region
+        
         factory = get_aws_client_factory()
-        ec2_client = factory.session.client('ec2', region_name=settings.aws_region)
+        ec2_client = factory.session.client('ec2', region_name=target_region)
         
         response = ec2_client.describe_volumes(VolumeIds=[volume_id])
         
@@ -188,7 +192,7 @@ async def get_volume_details(volume_id: str) -> Dict[str, Any]:
             "tags": tags
         }
         
-        logger.info(f"Retrieved details for volume {volume_id}")
+        logger.info(f"Retrieved details for volume {volume_id} in region {target_region}")
         return details
         
     except HTTPException:
@@ -202,19 +206,23 @@ async def get_volume_details(volume_id: str) -> Dict[str, Any]:
 
 
 @router.delete("/{volume_id}")
-async def delete_volume(volume_id: str) -> Dict[str, Any]:
+async def delete_volume(volume_id: str, region: Optional[str] = Query(None)) -> Dict[str, Any]:
     """
     Delete an EBS volume
     
     Args:
         volume_id: The EBS volume ID to delete
+        region: AWS region where the volume exists (optional, defaults to configured region)
         
     Returns:
         Dictionary containing deletion status
     """
     try:
+        # Use provided region or default from settings
+        target_region = region or settings.aws_region
+        
         factory = get_aws_client_factory()
-        ec2_client = factory.session.client('ec2', region_name=settings.aws_region)
+        ec2_client = factory.session.client('ec2', region_name=target_region)
         
         # First verify the volume exists and is available
         response = ec2_client.describe_volumes(VolumeIds=[volume_id])
@@ -237,7 +245,7 @@ async def delete_volume(volume_id: str) -> Dict[str, Any]:
         # Delete the volume
         ec2_client.delete_volume(VolumeId=volume_id)
         
-        logger.info(f"Deleted volume {volume_id}")
+        logger.info(f"Deleted volume {volume_id} in region {target_region}")
         
         # Invalidate EBS cache after deletion
         invalidate_cache("ebs")

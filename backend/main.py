@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from api import ec2, ebs, s3, iam, notifications
+from fastapi.responses import RedirectResponse
+from api import ec2, ebs, s3, iam, notifications, celery_monitor
 from core.config import settings
 from core.aws_client import get_aws_client_factory
 from core.cache import cached
@@ -41,6 +42,7 @@ app.include_router(ebs.router, prefix="/api/ebs", tags=["EBS"])
 app.include_router(s3.router, prefix="/api/s3", tags=["S3"])
 app.include_router(iam.router, prefix="/api/iam", tags=["IAM"])
 app.include_router(notifications.router, prefix="/api/notifications", tags=["Notifications"])
+app.include_router(celery_monitor.router, prefix="/api/celery", tags=["Celery Monitoring"])
 
 
 @app.on_event("startup")
@@ -70,7 +72,8 @@ async def root():
             "ebs": "/api/ebs",
             "s3": "/api/s3",
             "iam": "/api/iam",
-            "notifications": "/api/notifications"
+            "notifications": "/api/notifications",
+            "celery": "/api/celery"
         }
     }
 

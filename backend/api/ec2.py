@@ -129,19 +129,23 @@ async def get_all_instances(region: Optional[str] = Query(None)) -> Dict[str, Un
 
 @router.get("/{instance_id}")
 @cached(ttl_minutes=10, key_prefix="ec2")
-async def get_instance_details(instance_id: str) -> Dict[str, Any]:
+async def get_instance_details(instance_id: str, region: Optional[str] = Query(None)) -> Dict[str, Any]:
     """
     Get detailed information about a specific EC2 instance
     
     Args:
         instance_id: The EC2 instance ID
+        region: AWS region where the instance exists (optional, defaults to configured region)
         
     Returns:
         Dictionary containing detailed instance information
     """
     try:
+        # Use provided region or default from settings
+        target_region = region or settings.aws_region
+        
         factory = get_aws_client_factory()
-        ec2_client = factory.session.client('ec2', region_name=settings.aws_region)
+        ec2_client = factory.session.client('ec2', region_name=target_region)
         
         response = ec2_client.describe_instances(InstanceIds=[instance_id])
         
@@ -207,7 +211,7 @@ async def get_instance_details(instance_id: str) -> Dict[str, Any]:
             ]
         }
         
-        logger.info(f"Retrieved details for instance {instance_id}")
+        logger.info(f"Retrieved details for instance {instance_id} in region {target_region}")
         return details
         
     except HTTPException:
@@ -221,19 +225,23 @@ async def get_instance_details(instance_id: str) -> Dict[str, Any]:
 
 
 @router.delete("/{instance_id}")
-async def terminate_instance(instance_id: str) -> Dict[str, Any]:
+async def terminate_instance(instance_id: str, region: Optional[str] = Query(None)) -> Dict[str, Any]:
     """
     Terminate an EC2 instance
     
     Args:
         instance_id: The EC2 instance ID to terminate
+        region: AWS region where the instance exists (optional, defaults to configured region)
         
     Returns:
         Dictionary containing termination status
     """
     try:
+        # Use provided region or default from settings
+        target_region = region or settings.aws_region
+        
         factory = get_aws_client_factory()
-        ec2_client = factory.session.client('ec2', region_name=settings.aws_region)
+        ec2_client = factory.session.client('ec2', region_name=target_region)
         
         # First verify the instance exists and get its current state
         response = ec2_client.describe_instances(InstanceIds=[instance_id])
@@ -251,7 +259,7 @@ async def terminate_instance(instance_id: str) -> Dict[str, Any]:
         previous_state = terminated_instance['PreviousState']['Name']
         current_state = terminated_instance['CurrentState']['Name']
         
-        logger.info(f"Terminated instance {instance_id} (previous state: {previous_state}, current state: {current_state})")
+        logger.info(f"Terminated instance {instance_id} in region {target_region} (previous state: {previous_state}, current state: {current_state})")
         
         # Invalidate EC2 cache after deletion
         invalidate_cache("ec2")

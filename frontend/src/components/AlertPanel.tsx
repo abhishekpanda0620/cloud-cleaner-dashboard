@@ -3,10 +3,12 @@ import NotificationSetupGuide from './NotificationSetupGuide';
 
 interface AlertPanelProps {
   totalSavings: number;
+  s3Count: number;
+  iamUsersCount: number;
   onAlertSent?: () => void;
 }
 
-export default function AlertPanel({ totalSavings, onAlertSent }: AlertPanelProps) {
+export default function AlertPanel({ totalSavings, s3Count, iamUsersCount, onAlertSent }: AlertPanelProps) {
   const [loadingSlack, setLoadingSlack] = useState(false);
   const [loadingEmail, setLoadingEmail] = useState(false);
   const [message, setMessage] = useState('');
@@ -31,13 +33,12 @@ export default function AlertPanel({ totalSavings, onAlertSent }: AlertPanelProp
         },
         body: JSON.stringify({
           resource_type: 'unused_resources',
-          count: 0, // Will be calculated by backend from all regions
+          count: s3Count + iamUsersCount, // Total global resources
           estimated_savings: totalSavings,
           channel: channel,
           details: {
-            s3_count: 0, // Backend will fetch actual counts
-            iam_users_count: 0,
-            access_keys_count: 0,
+            s3_count: s3Count,
+            iam_users_count: iamUsersCount,
             total_savings: totalSavings
           }
         })
@@ -57,7 +58,8 @@ export default function AlertPanel({ totalSavings, onAlertSent }: AlertPanelProp
         throw new Error(`${channel === 'slack' ? 'Slack' : 'Email'} is not configured. Please check your environment variables.`);
       }
       
-      let successMessage = `✓ Alert sent to ${channel === 'slack' ? 'Slack' : 'Email'}!`;
+      // Show success message with background processing info
+      let successMessage = `✓ Alert queued! ${result.message || 'Processing in background...'}`;
       setMessage(successMessage);
       setMessageType('success');
       onAlertSent?.();

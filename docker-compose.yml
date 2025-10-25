@@ -1,4 +1,18 @@
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: cloud-cleaner-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - cloud-cleaner-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: ./backend
@@ -17,11 +31,16 @@ services:
       - SMTP_USERNAME=${SMTP_USERNAME}
       - SMTP_PASSWORD=${SMTP_PASSWORD}
       - SENDER_EMAIL=${SENDER_EMAIL}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - PORT=8084
       - HOST=0.0.0.0
       - DEBUG=${DEBUG:-false}
     env_file:
       - ./backend/.env
+    depends_on:
+      redis:
+        condition: service_healthy
     networks:
       - cloud-cleaner-network
     restart: unless-stopped
@@ -31,6 +50,34 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cloud-cleaner-celery-worker
+    command: celery -A core.celery_app worker --loglevel=info
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-ap-south-1}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
+      - NOTIFICATION_EMAIL_RECIPIENTS=${NOTIFICATION_EMAIL_RECIPIENTS}
+      - SMTP_SERVER=${SMTP_SERVER:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SENDER_EMAIL=${SENDER_EMAIL}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    env_file:
+      - ./backend/.env
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - cloud-cleaner-network
+    restart: unless-stopped
 
   frontend:
     build:

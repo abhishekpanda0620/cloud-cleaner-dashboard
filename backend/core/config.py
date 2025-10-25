@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     smtp_password: Optional[str] = None
     sender_email: Optional[str] = None
     
+    # Redis Configuration
+    redis_host: str = "redis"
+    redis_port: int = 6379
+    
     # Server Configuration
     port: int = 8084
     host: str = "0.0.0.0"

@@ -268,10 +268,10 @@ export default function Dashboard() {
       
       switch (deleteModal.resourceType) {
         case 'ec2':
-          endpoint = `${apiUrl}/ec2/${deleteModal.resourceId}`;
+          endpoint = `${apiUrl}/ec2/${deleteModal.resourceId}?region=${selectedRegion}`;
           break;
         case 'ebs':
-          endpoint = `${apiUrl}/ebs/${deleteModal.resourceId}`;
+          endpoint = `${apiUrl}/ebs/${deleteModal.resourceId}?region=${selectedRegion}`;
           break;
         case 's3':
           endpoint = `${apiUrl}/s3/${deleteModal.resourceId}${force ? '?force=true' : ''}`;
@@ -495,6 +495,7 @@ export default function Dashboard() {
           resourceType={detailsModal.resourceType}
           resourceId={detailsModal.resourceId}
           apiUrl={apiUrl}
+          region={selectedRegion}
         />
       )}
 
@@ -551,6 +552,8 @@ export default function Dashboard() {
         {/* Alert Panel */}
         <AlertPanel
           totalSavings={totalSavings}
+          s3Count={data.s3.length}
+          iamUsersCount={data.iam_users.length}
           onAlertSent={() => {
             addNotification({
               type: 'success',

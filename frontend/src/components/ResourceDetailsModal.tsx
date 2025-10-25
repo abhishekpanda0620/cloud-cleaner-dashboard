@@ -8,6 +8,7 @@ interface ResourceDetailsModalProps {
   resourceType: 'ec2' | 'ebs' | 's3' | 'iam-role' | 'iam-user';
   resourceId: string;
   apiUrl: string;
+  region?: string;
 }
 
 export default function ResourceDetailsModal({
@@ -15,7 +16,8 @@ export default function ResourceDetailsModal({
   onClose,
   resourceType,
   resourceId,
-  apiUrl
+  apiUrl,
+  region
 }: ResourceDetailsModalProps) {
   const [details, setDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -35,10 +37,10 @@ export default function ResourceDetailsModal({
       let endpoint = '';
       switch (resourceType) {
         case 'ec2':
-          endpoint = `${apiUrl}/ec2/${resourceId}`;
+          endpoint = `${apiUrl}/ec2/${resourceId}${region ? `?region=${region}` : ''}`;
           break;
         case 'ebs':
-          endpoint = `${apiUrl}/ebs/${resourceId}`;
+          endpoint = `${apiUrl}/ebs/${resourceId}${region ? `?region=${region}` : ''}`;
           break;
         case 's3':
           endpoint = `${apiUrl}/s3/${resourceId}`;
