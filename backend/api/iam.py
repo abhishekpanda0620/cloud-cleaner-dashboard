@@ -274,3 +274,367 @@ async def get_unused_access_keys() -> Dict[str, List[Dict[str, Any]]]:
             status_code=500,
             detail=f"Failed to fetch access keys: {str(e)}"
         )
+
+
+@router.get("/roles/{role_name}")
+async def get_role_details(role_name: str) -> Dict[str, Any]:
+    """
+    Get detailed information about a specific IAM role
+    
+    Args:
+        role_name: The IAM role name
+        
+    Returns:
+        Dictionary containing detailed role information
+    """
+    try:
+        iam_client = get_iam_client()
+        
+        # Get role details
+        role_response = iam_client.get_role(RoleName=role_name)
+        role = role_response.get('Role', {})
+        
+        # Get attached policies
+        attached_policies = []
+        try:
+            policies_response = iam_client.list_attached_role_policies(RoleName=role_name)
+            attached_policies = [
+                {
+                    "name": policy.get('PolicyName'),
+                    "arn": policy.get('PolicyArn')
+                }
+                for policy in policies_response.get('AttachedPolicies', [])
+            ]
+        except:
+            pass
+        
+        # Get inline policies
+        inline_policies = []
+        try:
+            inline_response = iam_client.list_role_policies(RoleName=role_name)
+            inline_policies = inline_response.get('PolicyNames', [])
+        except:
+            pass
+        
+        # Get role tags
+        tags = {}
+        try:
+            tags_response = iam_client.list_role_tags(RoleName=role_name)
+            tags = {tag.get('Key'): tag.get('Value') for tag in tags_response.get('Tags', [])}
+        except:
+            pass
+        
+        # Get last used information
+        role_last_used = role.get('RoleLastUsed', {})
+        
+        details = {
+            "name": role.get('RoleName'),
+            "arn": role.get('Arn'),
+            "role_id": role.get('RoleId'),
+            "path": role.get('Path'),
+            "create_date": role.get('CreateDate').isoformat() if role.get('CreateDate') else None,
+            "description": role.get('Description', 'N/A'),
+            "max_session_duration": role.get('MaxSessionDuration'),
+            "last_used_date": role_last_used.get('LastUsedDate').isoformat() if role_last_used.get('LastUsedDate') else None,
+            "last_used_region": role_last_used.get('Region'),
+            "assume_role_policy": role.get('AssumeRolePolicyDocument'),
+            "attached_policies": attached_policies,
+            "inline_policies": inline_policies,
+            "tags": tags
+        }
+        
+        logger.info(f"Retrieved details for role {role_name}")
+        return details
+        
+    except iam_client.exceptions.NoSuchEntityException:
+        raise HTTPException(status_code=404, detail=f"Role {role_name} not found")
+    except Exception as e:
+        logger.error(f"Error fetching role details for {role_name}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch role details: {str(e)}"
+        )
+
+
+@router.delete("/roles/{role_name}")
+async def delete_role(role_name: str, force: bool = False) -> Dict[str, Any]:
+    """
+    Delete an IAM role
+    
+    Args:
+        role_name: The IAM role name to delete
+        force: If True, detach all policies and delete the role
+        
+    Returns:
+        Dictionary containing deletion status
+    """
+    try:
+        iam_client = get_iam_client()
+        
+        # Check if role exists
+        try:
+            iam_client.get_role(RoleName=role_name)
+        except iam_client.exceptions.NoSuchEntityException:
+            raise HTTPException(status_code=404, detail=f"Role {role_name} not found")
+        
+        if force:
+            # Detach all managed policies
+            try:
+                policies_response = iam_client.list_attached_role_policies(RoleName=role_name)
+                for policy in policies_response.get('AttachedPolicies', []):
+                    iam_client.detach_role_policy(
+                        RoleName=role_name,
+                        PolicyArn=policy.get('PolicyArn')
+                    )
+                    logger.info(f"Detached policy {policy.get('PolicyName')} from role {role_name}")
+            except:
+                pass
+            
+            # Delete all inline policies
+            try:
+                inline_response = iam_client.list_role_policies(RoleName=role_name)
+                for policy_name in inline_response.get('PolicyNames', []):
+                    iam_client.delete_role_policy(
+                        RoleName=role_name,
+                        PolicyName=policy_name
+                    )
+                    logger.info(f"Deleted inline policy {policy_name} from role {role_name}")
+            except:
+                pass
+            
+            # Remove role from instance profiles
+            try:
+                profiles_response = iam_client.list_instance_profiles_for_role(RoleName=role_name)
+                for profile in profiles_response.get('InstanceProfiles', []):
+                    iam_client.remove_role_from_instance_profile(
+                        InstanceProfileName=profile.get('InstanceProfileName'),
+                        RoleName=role_name
+                    )
+                    logger.info(f"Removed role {role_name} from instance profile {profile.get('InstanceProfileName')}")
+            except:
+                pass
+        
+        # Delete the role
+        iam_client.delete_role(RoleName=role_name)
+        
+        logger.info(f"Deleted role {role_name}")
+        
+        return {
+            "success": True,
+            "role_name": role_name,
+            "message": f"Role {role_name} has been deleted"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting role {role_name}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to delete role: {str(e)}"
+        )
+
+
+@router.get("/users/{user_name}")
+async def get_user_details(user_name: str) -> Dict[str, Any]:
+    """
+    Get detailed information about a specific IAM user
+    
+    Args:
+        user_name: The IAM user name
+        
+    Returns:
+        Dictionary containing detailed user information
+    """
+    try:
+        iam_client = get_iam_client()
+        
+        # Get user details
+        user_response = iam_client.get_user(UserName=user_name)
+        user = user_response.get('User', {})
+        
+        # Get attached policies
+        attached_policies = []
+        try:
+            policies_response = iam_client.list_attached_user_policies(UserName=user_name)
+            attached_policies = [
+                {
+                    "name": policy.get('PolicyName'),
+                    "arn": policy.get('PolicyArn')
+                }
+                for policy in policies_response.get('AttachedPolicies', [])
+            ]
+        except:
+            pass
+        
+        # Get inline policies
+        inline_policies = []
+        try:
+            inline_response = iam_client.list_user_policies(UserName=user_name)
+            inline_policies = inline_response.get('PolicyNames', [])
+        except:
+            pass
+        
+        # Get access keys
+        access_keys = []
+        try:
+            keys_response = iam_client.list_access_keys(UserName=user_name)
+            access_keys = [
+                {
+                    "access_key_id": key.get('AccessKeyId'),
+                    "status": key.get('Status'),
+                    "create_date": key.get('CreateDate').isoformat() if key.get('CreateDate') else None
+                }
+                for key in keys_response.get('AccessKeyMetadata', [])
+            ]
+        except:
+            pass
+        
+        # Check console access
+        has_console_access = False
+        try:
+            iam_client.get_login_profile(UserName=user_name)
+            has_console_access = True
+        except:
+            pass
+        
+        # Get user groups
+        groups = []
+        try:
+            groups_response = iam_client.list_groups_for_user(UserName=user_name)
+            groups = [group.get('GroupName') for group in groups_response.get('Groups', [])]
+        except:
+            pass
+        
+        # Get user tags
+        tags = {}
+        try:
+            tags_response = iam_client.list_user_tags(UserName=user_name)
+            tags = {tag.get('Key'): tag.get('Value') for tag in tags_response.get('Tags', [])}
+        except:
+            pass
+        
+        details = {
+            "name": user.get('UserName'),
+            "arn": user.get('Arn'),
+            "user_id": user.get('UserId'),
+            "path": user.get('Path'),
+            "create_date": user.get('CreateDate').isoformat() if user.get('CreateDate') else None,
+            "password_last_used": user.get('PasswordLastUsed').isoformat() if user.get('PasswordLastUsed') else None,
+            "has_console_access": has_console_access,
+            "attached_policies": attached_policies,
+            "inline_policies": inline_policies,
+            "access_keys": access_keys,
+            "groups": groups,
+            "tags": tags
+        }
+        
+        logger.info(f"Retrieved details for user {user_name}")
+        return details
+        
+    except iam_client.exceptions.NoSuchEntityException:
+        raise HTTPException(status_code=404, detail=f"User {user_name} not found")
+    except Exception as e:
+        logger.error(f"Error fetching user details for {user_name}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch user details: {str(e)}"
+        )
+
+
+@router.delete("/users/{user_name}")
+async def delete_user(user_name: str, force: bool = False) -> Dict[str, Any]:
+    """
+    Delete an IAM user
+    
+    Args:
+        user_name: The IAM user name to delete
+        force: If True, remove all user resources before deletion
+        
+    Returns:
+        Dictionary containing deletion status
+    """
+    try:
+        iam_client = get_iam_client()
+        
+        # Check if user exists
+        try:
+            iam_client.get_user(UserName=user_name)
+        except iam_client.exceptions.NoSuchEntityException:
+            raise HTTPException(status_code=404, detail=f"User {user_name} not found")
+        
+        if force:
+            # Delete login profile
+            try:
+                iam_client.delete_login_profile(UserName=user_name)
+                logger.info(f"Deleted login profile for user {user_name}")
+            except:
+                pass
+            
+            # Delete access keys
+            try:
+                keys_response = iam_client.list_access_keys(UserName=user_name)
+                for key in keys_response.get('AccessKeyMetadata', []):
+                    iam_client.delete_access_key(
+                        UserName=user_name,
+                        AccessKeyId=key.get('AccessKeyId')
+                    )
+                    logger.info(f"Deleted access key {key.get('AccessKeyId')} for user {user_name}")
+            except:
+                pass
+            
+            # Detach managed policies
+            try:
+                policies_response = iam_client.list_attached_user_policies(UserName=user_name)
+                for policy in policies_response.get('AttachedPolicies', []):
+                    iam_client.detach_user_policy(
+                        UserName=user_name,
+                        PolicyArn=policy.get('PolicyArn')
+                    )
+                    logger.info(f"Detached policy {policy.get('PolicyName')} from user {user_name}")
+            except:
+                pass
+            
+            # Delete inline policies
+            try:
+                inline_response = iam_client.list_user_policies(UserName=user_name)
+                for policy_name in inline_response.get('PolicyNames', []):
+                    iam_client.delete_user_policy(
+                        UserName=user_name,
+                        PolicyName=policy_name
+                    )
+                    logger.info(f"Deleted inline policy {policy_name} from user {user_name}")
+            except:
+                pass
+            
+            # Remove from groups
+            try:
+                groups_response = iam_client.list_groups_for_user(UserName=user_name)
+                for group in groups_response.get('Groups', []):
+                    iam_client.remove_user_from_group(
+                        UserName=user_name,
+                        GroupName=group.get('GroupName')
+                    )
+                    logger.info(f"Removed user {user_name} from group {group.get('GroupName')}")
+            except:
+                pass
+        
+        # Delete the user
+        iam_client.delete_user(UserName=user_name)
+        
+        logger.info(f"Deleted user {user_name}")
+        
+        return {
+            "success": True,
+            "user_name": user_name,
+            "message": f"User {user_name} has been deleted"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting user {user_name}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to delete user: {str(e)}"
+        )

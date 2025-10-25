@@ -4,6 +4,8 @@ import StatCard from "@/components/StatCard";
 import ResourceTab from "@/components/ResourceTab";
 import NotificationCenter from "@/components/NotificationCenter";
 import AlertPanel from "@/components/AlertPanel";
+import ResourceDetailsModal from "@/components/ResourceDetailsModal";
+import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import { useNotifications } from "@/hooks/useNotifications";
 
 interface EC2Instance {
@@ -73,6 +75,19 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('ec2');
+  const [detailsModal, setDetailsModal] = useState<{
+    isOpen: boolean;
+    resourceType: 'ec2' | 'ebs' | 's3' | 'iam-role' | 'iam-user' | null;
+    resourceId: string;
+  }>({ isOpen: false, resourceType: null, resourceId: '' });
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    resourceType: 'ec2' | 'ebs' | 's3' | 'iam-role' | 'iam-user' | null;
+    resourceId: string;
+    resourceName: string;
+    showForceOption: boolean;
+  }>({ isOpen: false, resourceType: null, resourceId: '', resourceName: '', showForceOption: false });
+  
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8084/api";
   const { notifications, addNotification, dismissNotification } = useNotifications();
 
@@ -174,6 +189,86 @@ export default function Dashboard() {
     fetchData();
   }, [apiUrl, addNotification]);
 
+  const refreshData = () => {
+    window.location.reload();
+  };
+
+  const handleViewDetails = (resourceType: 'ec2' | 'ebs' | 's3' | 'iam-role' | 'iam-user', row: any) => {
+    const resourceId = resourceType === 's3' ? row.name : resourceType.includes('iam') ? row.name : row.id;
+    setDetailsModal({
+      isOpen: true,
+      resourceType,
+      resourceId
+    });
+  };
+
+  const handleDelete = (resourceType: 'ec2' | 'ebs' | 's3' | 'iam-role' | 'iam-user', row: any, showForce: boolean = false) => {
+    const resourceId = resourceType === 's3' ? row.name : resourceType.includes('iam') ? row.name : row.id;
+    const resourceName = row.name || row.id;
+    setDeleteModal({
+      isOpen: true,
+      resourceType,
+      resourceId,
+      resourceName,
+      showForceOption: showForce
+    });
+  };
+
+  const handleConfirmDelete = async (force?: boolean) => {
+    if (!deleteModal.resourceType || !deleteModal.resourceId) return;
+
+    try {
+      let endpoint = '';
+      let method = 'DELETE';
+      
+      switch (deleteModal.resourceType) {
+        case 'ec2':
+          endpoint = `${apiUrl}/ec2/${deleteModal.resourceId}`;
+          break;
+        case 'ebs':
+          endpoint = `${apiUrl}/ebs/${deleteModal.resourceId}`;
+          break;
+        case 's3':
+          endpoint = `${apiUrl}/s3/${deleteModal.resourceId}${force ? '?force=true' : ''}`;
+          break;
+        case 'iam-role':
+          endpoint = `${apiUrl}/iam/roles/${deleteModal.resourceId}${force ? '?force=true' : ''}`;
+          break;
+        case 'iam-user':
+          endpoint = `${apiUrl}/iam/users/${deleteModal.resourceId}${force ? '?force=true' : ''}`;
+          break;
+      }
+
+      const response = await fetch(endpoint, { method });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: response.statusText }));
+        throw new Error(errorData.detail || `Failed to delete resource: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      addNotification({
+        type: 'success',
+        title: 'Resource Deleted',
+        message: result.message || `Successfully deleted ${deleteModal.resourceType} ${deleteModal.resourceName}`,
+        duration: 5000
+      });
+
+      // Refresh data after successful deletion
+      setTimeout(refreshData, 1000);
+      
+    } catch (error) {
+      addNotification({
+        type: 'error',
+        title: 'Delete Failed',
+        message: error instanceof Error ? error.message : 'Failed to delete resource',
+        duration: 6000
+      });
+      throw error;
+    }
+  };
+
   const totalSavings = (data.ec2.length * 50) + (data.ebs.length * 10) + (data.s3.length * 5);
 
   const tabs = [
@@ -196,17 +291,7 @@ export default function Dashboard() {
         </span>
       )
     },
-    { header: 'Monthly Cost', accessor: 'cost', render: () => <span className="text-sm font-semibold text-green-600">$50.00</span> },
-    {
-      header: 'Actions',
-      accessor: 'actions',
-      render: () => (
-        <div className="flex gap-2">
-          <button className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded hover:bg-blue-200">Start</button>
-          <button className="px-3 py-1 text-xs font-medium bg-red-100 text-red-700 rounded hover:bg-red-200">Terminate</button>
-        </div>
-      )
-    }
+    { header: 'Monthly Cost', accessor: 'cost', render: () => <span className="text-sm font-semibold text-green-600">$50.00</span> }
   ];
 
   const ebsColumns = [
@@ -221,12 +306,7 @@ export default function Dashboard() {
         </span>
       )
     },
-    { header: 'Monthly Cost', accessor: 'cost', render: () => <span className="text-sm font-semibold text-green-600">$10.00</span> },
-    {
-      header: 'Actions',
-      accessor: 'actions',
-      render: () => <button className="px-3 py-1 text-xs font-medium bg-red-100 text-red-700 rounded hover:bg-red-200">Delete</button>
-    }
+    { header: 'Monthly Cost', accessor: 'cost', render: () => <span className="text-sm font-semibold text-green-600">$10.00</span> }
   ];
 
   const s3Columns = [
@@ -236,17 +316,7 @@ export default function Dashboard() {
       accessor: 'creation_date',
       render: (value: string) => <span className="text-sm text-slate-600">{new Date(value).toLocaleDateString()}</span>
     },
-    { header: 'Monthly Cost', accessor: 'cost', render: () => <span className="text-sm font-semibold text-green-600">$5.00</span> },
-    {
-      header: 'Actions',
-      accessor: 'actions',
-      render: () => (
-        <div className="flex gap-2">
-          <button className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded hover:bg-blue-200">View</button>
-          <button className="px-3 py-1 text-xs font-medium bg-red-100 text-red-700 rounded hover:bg-red-200">Delete</button>
-        </div>
-      )
-    }
+    { header: 'Monthly Cost', accessor: 'cost', render: () => <span className="text-sm font-semibold text-green-600">$5.00</span> }
   ];
 
   const iamColumns = [
@@ -255,16 +325,6 @@ export default function Dashboard() {
       header: 'Last Used',
       accessor: 'last_used_date',
       render: (value: string) => <span className="text-sm text-slate-600">{value ? new Date(value).toLocaleDateString() : 'Never'}</span>
-    },
-    {
-      header: 'Actions',
-      accessor: 'actions',
-      render: () => (
-        <div className="flex gap-2">
-          <button className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded hover:bg-blue-200">View</button>
-          <button className="px-3 py-1 text-xs font-medium bg-red-100 text-red-700 rounded hover:bg-red-200">Delete</button>
-        </div>
-      )
     }
   ];
 
@@ -288,16 +348,6 @@ export default function Dashboard() {
       header: 'Created',
       accessor: 'create_date',
       render: (value: string) => <span className="text-sm text-slate-600">{new Date(value).toLocaleDateString()}</span>
-    },
-    {
-      header: 'Actions',
-      accessor: 'actions',
-      render: () => (
-        <div className="flex gap-2">
-          <button className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded hover:bg-blue-200">View</button>
-          <button className="px-3 py-1 text-xs font-medium bg-red-100 text-red-700 rounded hover:bg-red-200">Delete</button>
-        </div>
-      )
     }
   ];
 
@@ -326,16 +376,6 @@ export default function Dashboard() {
           {value}
         </span>
       )
-    },
-    {
-      header: 'Actions',
-      accessor: 'actions',
-      render: () => (
-        <div className="flex gap-2">
-          <button className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded hover:bg-blue-200">Deactivate</button>
-          <button className="px-3 py-1 text-xs font-medium bg-red-100 text-red-700 rounded hover:bg-red-200">Delete</button>
-        </div>
-      )
     }
   ];
 
@@ -345,35 +385,45 @@ export default function Dashboard() {
       data: data.ec2,
       icon: '🖥️',
       emptyTitle: 'No stopped EC2 instances',
-      emptyDescription: 'All your instances are running efficiently!'
+      emptyDescription: 'All your instances are running efficiently!',
+      onViewDetails: (row: any) => handleViewDetails('ec2', row),
+      onDelete: (row: any) => handleDelete('ec2', row, false)
     },
     ebs: {
       columns: ebsColumns,
       data: data.ebs,
       icon: '💾',
       emptyTitle: 'No unattached EBS volumes',
-      emptyDescription: 'All your volumes are properly attached!'
+      emptyDescription: 'All your volumes are properly attached!',
+      onViewDetails: (row: any) => handleViewDetails('ebs', row),
+      onDelete: (row: any) => handleDelete('ebs', row, false)
     },
     s3: {
       columns: s3Columns,
       data: data.s3,
       icon: '🪣',
       emptyTitle: 'No unused S3 buckets',
-      emptyDescription: 'All your buckets are being used!'
+      emptyDescription: 'All your buckets are being used!',
+      onViewDetails: (row: any) => handleViewDetails('s3', row),
+      onDelete: (row: any) => handleDelete('s3', row, true)
     },
     iam: {
       columns: iamColumns,
       data: data.iam,
       icon: '🔐',
       emptyTitle: 'No unused IAM roles',
-      emptyDescription: 'All your roles are actively being used!'
+      emptyDescription: 'All your roles are actively being used!',
+      onViewDetails: (row: any) => handleViewDetails('iam-role', row),
+      onDelete: (row: any) => handleDelete('iam-role', row, true)
     },
     iam_users: {
       columns: iamUsersColumns,
       data: data.iam_users,
       icon: '👥',
       emptyTitle: 'No unused IAM users',
-      emptyDescription: 'All your users have recent activity!'
+      emptyDescription: 'All your users have recent activity!',
+      onViewDetails: (row: any) => handleViewDetails('iam-user', row),
+      onDelete: (row: any) => handleDelete('iam-user', row, true)
     },
     access_keys: {
       columns: accessKeysColumns,
@@ -386,6 +436,29 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      {/* Modals */}
+      {detailsModal.isOpen && detailsModal.resourceType && (
+        <ResourceDetailsModal
+          isOpen={detailsModal.isOpen}
+          onClose={() => setDetailsModal({ isOpen: false, resourceType: null, resourceId: '' })}
+          resourceType={detailsModal.resourceType}
+          resourceId={detailsModal.resourceId}
+          apiUrl={apiUrl}
+        />
+      )}
+
+      {deleteModal.isOpen && deleteModal.resourceType && (
+        <DeleteConfirmationModal
+          isOpen={deleteModal.isOpen}
+          onClose={() => setDeleteModal({ isOpen: false, resourceType: null, resourceId: '', resourceName: '', showForceOption: false })}
+          onConfirm={handleConfirmDelete}
+          resourceType={deleteModal.resourceType}
+          resourceId={deleteModal.resourceId}
+          resourceName={deleteModal.resourceName}
+          showForceOption={deleteModal.showForceOption}
+        />
+      )}
+
       {/* Notification Center */}
       <NotificationCenter
         notifications={notifications}

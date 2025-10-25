@@ -11,6 +11,8 @@ interface ResourceTabProps {
   icon: string;
   emptyTitle: string;
   emptyDescription: string;
+  onViewDetails?: (row: any) => void;
+  onDelete?: (row: any) => void;
 }
 
 export default function ResourceTab({
@@ -20,7 +22,9 @@ export default function ResourceTab({
   columns,
   icon,
   emptyTitle,
-  emptyDescription
+  emptyDescription,
+  onViewDetails,
+  onDelete
 }: ResourceTabProps) {
   if (loading) {
     return <LoadingSpinner message="Loading resources..." />;
@@ -34,5 +38,13 @@ export default function ResourceTab({
     return <EmptyState icon="✨" title={emptyTitle} description={emptyDescription} />;
   }
 
-  return <ResourceTable columns={columns} data={data} icon={icon} />;
+  return (
+    <ResourceTable
+      columns={columns}
+      data={data}
+      icon={icon}
+      onViewDetails={onViewDetails}
+      onDelete={onDelete}
+    />
+  );
 }

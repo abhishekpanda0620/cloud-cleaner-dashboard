@@ -106,3 +106,127 @@ async def get_all_volumes() -> Dict[str, List[Dict[str, Any]]]:
             status_code=500,
             detail=f"Failed to fetch EBS volumes: {str(e)}"
         )
+
+
+@router.get("/{volume_id}")
+async def get_volume_details(volume_id: str) -> Dict[str, Any]:
+    """
+    Get detailed information about a specific EBS volume
+    
+    Args:
+        volume_id: The EBS volume ID
+        
+    Returns:
+        Dictionary containing detailed volume information
+    """
+    try:
+        ec2_client = get_ebs_client()
+        
+        response = ec2_client.describe_volumes(VolumeIds=[volume_id])
+        
+        if not response.get('Volumes'):
+            raise HTTPException(status_code=404, detail=f"Volume {volume_id} not found")
+        
+        volume = response['Volumes'][0]
+        
+        # Get volume name from tags
+        volume_name = 'N/A'
+        tags = {}
+        for tag in volume.get('Tags', []):
+            tags[tag.get('Key')] = tag.get('Value')
+            if tag.get('Key') == 'Name':
+                volume_name = tag.get('Value', 'N/A')
+        
+        # Get attachment information
+        attachments = []
+        for attachment in volume.get('Attachments', []):
+            attachments.append({
+                "instance_id": attachment.get('InstanceId'),
+                "device": attachment.get('Device'),
+                "state": attachment.get('State'),
+                "attach_time": attachment.get('AttachTime').isoformat() if attachment.get('AttachTime') else None,
+                "delete_on_termination": attachment.get('DeleteOnTermination')
+            })
+        
+        details = {
+            "id": volume.get('VolumeId'),
+            "name": volume_name,
+            "size": volume.get('Size'),
+            "type": volume.get('VolumeType'),
+            "state": volume.get('State'),
+            "create_time": volume.get('CreateTime').isoformat() if volume.get('CreateTime') else None,
+            "availability_zone": volume.get('AvailabilityZone'),
+            "snapshot_id": volume.get('SnapshotId'),
+            "iops": volume.get('Iops'),
+            "throughput": volume.get('Throughput'),
+            "encrypted": volume.get('Encrypted'),
+            "kms_key_id": volume.get('KmsKeyId'),
+            "multi_attach_enabled": volume.get('MultiAttachEnabled'),
+            "attachments": attachments,
+            "tags": tags
+        }
+        
+        logger.info(f"Retrieved details for volume {volume_id}")
+        return details
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching volume details for {volume_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch volume details: {str(e)}"
+        )
+
+
+@router.delete("/{volume_id}")
+async def delete_volume(volume_id: str) -> Dict[str, Any]:
+    """
+    Delete an EBS volume
+    
+    Args:
+        volume_id: The EBS volume ID to delete
+        
+    Returns:
+        Dictionary containing deletion status
+    """
+    try:
+        ec2_client = get_ebs_client()
+        
+        # First verify the volume exists and is available
+        response = ec2_client.describe_volumes(VolumeIds=[volume_id])
+        
+        if not response.get('Volumes'):
+            raise HTTPException(status_code=404, detail=f"Volume {volume_id} not found")
+        
+        volume = response['Volumes'][0]
+        state = volume.get('State')
+        
+        # Check if volume is attached
+        if state == 'in-use':
+            attachments = volume.get('Attachments', [])
+            attached_instances = [att.get('InstanceId') for att in attachments]
+            raise HTTPException(
+                status_code=400,
+                detail=f"Volume {volume_id} is attached to instances: {', '.join(attached_instances)}. Detach before deleting."
+            )
+        
+        # Delete the volume
+        ec2_client.delete_volume(VolumeId=volume_id)
+        
+        logger.info(f"Deleted volume {volume_id}")
+        
+        return {
+            "success": True,
+            "volume_id": volume_id,
+            "message": f"Volume {volume_id} has been deleted"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting volume {volume_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to delete volume: {str(e)}"
+        )
