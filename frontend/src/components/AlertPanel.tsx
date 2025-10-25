@@ -2,26 +2,17 @@ import { useState } from 'react';
 import NotificationSetupGuide from './NotificationSetupGuide';
 
 interface AlertPanelProps {
-  resourceCounts: {
-    ec2: number;
-    ebs: number;
-    s3: number;
-    iam_users: number;
-    access_keys: number;
-  };
+  totalSavings: number;
   onAlertSent?: () => void;
 }
 
-export default function AlertPanel({ resourceCounts, onAlertSent }: AlertPanelProps) {
+export default function AlertPanel({ totalSavings, onAlertSent }: AlertPanelProps) {
   const [loadingSlack, setLoadingSlack] = useState(false);
   const [loadingEmail, setLoadingEmail] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
   const [showSetupGuide, setShowSetupGuide] = useState(false);
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8084/api";
-
-  const totalResources = Object.values(resourceCounts).reduce((a, b) => a + b, 0);
-  const estimatedSavings = (resourceCounts.ec2 * 50) + (resourceCounts.ebs * 10) + (resourceCounts.s3 * 5);
 
   const sendAlert = async (channel: 'slack' | 'email') => {
     try {
@@ -40,16 +31,14 @@ export default function AlertPanel({ resourceCounts, onAlertSent }: AlertPanelPr
         },
         body: JSON.stringify({
           resource_type: 'unused_resources',
-          count: totalResources,
-          estimated_savings: estimatedSavings,
+          count: 0, // Will be calculated by backend from all regions
+          estimated_savings: totalSavings,
           channel: channel,
           details: {
-            ec2_count: resourceCounts.ec2,
-            ebs_count: resourceCounts.ebs,
-            s3_count: resourceCounts.s3,
-            iam_users_count: resourceCounts.iam_users,
-            access_keys_count: resourceCounts.access_keys,
-            total_savings: estimatedSavings
+            s3_count: 0, // Backend will fetch actual counts
+            iam_users_count: 0,
+            access_keys_count: 0,
+            total_savings: totalSavings
           }
         })
       });
@@ -85,48 +74,15 @@ export default function AlertPanel({ resourceCounts, onAlertSent }: AlertPanelPr
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
+    <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl shadow-lg p-6 mb-8 text-white">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-xl font-semibold text-slate-900">Send Alert</h2>
-          <p className="text-sm text-slate-600 mt-1">
-            Send a summary of unused resources to Slack or Email
-          </p>
+          <p className="text-sm font-medium text-green-100">Potential Monthly Savings</p>
+          <p className="text-4xl font-bold mt-2">${totalSavings.toFixed(2)}</p>
+          <p className="text-sm text-green-100 mt-2">Send alerts to Slack or Email</p>
         </div>
-        <div className="text-4xl">🔔</div>
-      </div>
-
-      {/* Resource Summary */}
-      <div className="bg-slate-50 rounded-lg p-4 mb-6">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          <div>
-            <p className="text-xs text-slate-600 uppercase font-semibold">EC2</p>
-            <p className="text-2xl font-bold text-slate-900">{resourceCounts.ec2}</p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-600 uppercase font-semibold">EBS</p>
-            <p className="text-2xl font-bold text-slate-900">{resourceCounts.ebs}</p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-600 uppercase font-semibold">S3</p>
-            <p className="text-2xl font-bold text-slate-900">{resourceCounts.s3}</p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-600 uppercase font-semibold">Users</p>
-            <p className="text-2xl font-bold text-slate-900">{resourceCounts.iam_users}</p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-600 uppercase font-semibold">Keys</p>
-            <p className="text-2xl font-bold text-slate-900">{resourceCounts.access_keys}</p>
-          </div>
-        </div>
-        <div className="mt-4 pt-4 border-t border-slate-200">
-          <p className="text-sm text-slate-600">
-            <span className="font-semibold text-slate-900">{totalResources}</span> total unused resources
-          </p>
-          <p className="text-sm text-green-600 font-semibold mt-1">
-            💰 Potential savings: ${estimatedSavings.toFixed(2)}/month
-          </p>
+        <div className="h-20 w-20 bg-white/20 rounded-lg flex items-center justify-center">
+          <span className="text-5xl">💰</span>
         </div>
       </div>
 
@@ -144,14 +100,14 @@ export default function AlertPanel({ resourceCounts, onAlertSent }: AlertPanelPr
       )}
 
       {/* Send Buttons */}
-      <div className="flex gap-3">
+      <div className="flex gap-3 mb-4">
         <button
           onClick={() => sendAlert('slack')}
-          disabled={loadingSlack || loadingEmail || totalResources === 0}
+          disabled={loadingSlack || loadingEmail}
           className={`flex-1 px-6 py-3 rounded-lg font-medium transition-colors ${
-            loadingSlack || loadingEmail || totalResources === 0
-              ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-              : 'bg-purple-600 text-white hover:bg-purple-700'
+            loadingSlack || loadingEmail
+              ? 'bg-white/30 text-white/50 cursor-not-allowed'
+              : 'bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm'
           }`}
         >
           {loadingSlack ? (
@@ -165,11 +121,11 @@ export default function AlertPanel({ resourceCounts, onAlertSent }: AlertPanelPr
         </button>
         <button
           onClick={() => sendAlert('email')}
-          disabled={loadingSlack || loadingEmail || totalResources === 0}
+          disabled={loadingSlack || loadingEmail}
           className={`flex-1 px-6 py-3 rounded-lg font-medium transition-colors ${
-            loadingSlack || loadingEmail || totalResources === 0
-              ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-              : 'bg-blue-600 text-white hover:bg-blue-700'
+            loadingSlack || loadingEmail
+              ? 'bg-white/30 text-white/50 cursor-not-allowed'
+              : 'bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm'
           }`}
         >
           {loadingEmail ? (
@@ -181,27 +137,13 @@ export default function AlertPanel({ resourceCounts, onAlertSent }: AlertPanelPr
             '📧 Send to Email'
           )}
         </button>
-      </div>
-
-      {totalResources === 0 && (
-        <p className="text-sm text-slate-500 mt-3 text-center">
-          No unused resources to report
-        </p>
-      )}
-
-      {/* Info Box with Setup Guide */}
-      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <div className="flex items-start justify-between gap-4">
-          <p className="text-sm text-blue-800">
-            <span className="font-semibold">ℹ️ Need help setting up?</span> Click the button to see step-by-step instructions for Slack and Email notifications.
-          </p>
-          <button
-            onClick={() => setShowSetupGuide(true)}
-            className="flex-shrink-0 px-3 py-1 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 transition-colors whitespace-nowrap"
-          >
-            📖 Setup Guide
-          </button>
-        </div>
+        <button
+          onClick={() => setShowSetupGuide(true)}
+          className="px-4 py-3 rounded-lg font-medium bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm transition-colors"
+          title="Setup Guide"
+        >
+          📖
+        </button>
       </div>
 
       {/* Setup Guide Modal */}

@@ -1,6 +1,5 @@
 "use client"
 import { useEffect, useState } from "react";
-import StatCard from "@/components/StatCard";
 import ResourceTab from "@/components/ResourceTab";
 import NotificationCenter from "@/components/NotificationCenter";
 import AlertPanel from "@/components/AlertPanel";
@@ -83,6 +82,7 @@ export default function Dashboard() {
     access_keys: true
   });
   const [error, setError] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('ec2');
   const [selectedRegion, setSelectedRegion] = useState<string>('us-east-1'); // Default region
   const [detailsModal, setDetailsModal] = useState<{
@@ -185,9 +185,10 @@ export default function Dashboard() {
           }
         }
 
-        // Show final notification
+        // Show final notification and set connection status
         if (errors.length > 0) {
           setError(`Some resources failed to load: ${errors.join(', ')}`);
+          setIsConnected(loadedCount > 0); // Connected if at least one resource loaded
           addNotification({
             type: 'warning',
             title: 'Partial Data Load',
@@ -195,6 +196,7 @@ export default function Dashboard() {
             duration: 6000
           });
         } else {
+          setIsConnected(true); // All resources loaded successfully
           const totalResources = Object.values(data).reduce((sum, arr) => sum + arr.length, 0);
           addNotification({
             type: 'success',
@@ -206,6 +208,7 @@ export default function Dashboard() {
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : "Failed to fetch data";
         setError(errorMsg);
+        setIsConnected(false); // Not connected on complete failure
         addNotification({
           type: 'error',
           title: 'Failed to Load Resources',
@@ -535,8 +538,8 @@ export default function Dashboard() {
                 />
               )}
               <div className="flex items-center space-x-2">
-                <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-sm text-slate-600">Connected</span>
+                <div className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+                <span className="text-sm text-slate-600">{isConnected ? 'Connected' : 'Not Connected'}</span>
               </div>
             </div>
           </div>
@@ -545,43 +548,9 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-          <StatCard title="EC2 Instances" value={data.ec2.length} icon="🖥️" bgColor="bg-blue-100" loading={loadingStates.ec2} />
-          <StatCard title="EBS Volumes" value={data.ebs.length} icon="💾" bgColor="bg-purple-100" loading={loadingStates.ebs} />
-          <StatCard title="S3 Buckets" value={data.s3.length} icon="🪣" bgColor="bg-orange-100" loading={loadingStates.s3} />
-          <StatCard title="IAM Roles" value={data.iam.length} icon="🔐" bgColor="bg-green-100" loading={loadingStates.iam} />
-          <StatCard title="IAM Users" value={data.iam_users.length} icon="👥" bgColor="bg-indigo-100" loading={loadingStates.iam_users} />
-          <StatCard title="Access Keys" value={data.access_keys.length} icon="🔑" bgColor="bg-red-100" loading={loadingStates.access_keys} />
-        </div>
-
-        {/* Savings Card */}
-        <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl shadow-lg p-6 mb-8 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-green-100">Potential Monthly Savings</p>
-              <p className="text-4xl font-bold mt-2">
-                ${loading ? "..." : totalSavings.toFixed(2)}
-              </p>
-              <p className="text-sm text-green-100 mt-2">
-                By cleaning up {data.ec2.length + data.ebs.length + data.s3.length} unused resources
-              </p>
-            </div>
-            <div className="h-20 w-20 bg-white/20 rounded-lg flex items-center justify-center">
-              <span className="text-5xl">💰</span>
-            </div>
-          </div>
-        </div>
-
         {/* Alert Panel */}
         <AlertPanel
-          resourceCounts={{
-            ec2: data.ec2.length,
-            ebs: data.ebs.length,
-            s3: data.s3.length,
-            iam_users: data.iam_users.length,
-            access_keys: data.access_keys.length
-          }}
+          totalSavings={totalSavings}
           onAlertSent={() => {
             addNotification({
               type: 'success',
