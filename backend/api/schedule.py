@@ -166,6 +166,7 @@ async def get_schedule_status():
         frequency = redis_client.get('schedule:frequency')
         channels = redis_client.get('schedule:channels')
         last_scan = redis_client.get('schedule:last_scan')
+        custom_interval = redis_client.get('schedule:custom_interval')
         
         # Get next scan time from RedBeat
         next_scan = None
@@ -178,9 +179,9 @@ async def get_schedule_status():
                 # Calculate next run time
                 if entry.schedule:
                     last_run = datetime.fromisoformat(last_scan.decode('utf-8')) if last_scan else datetime.now()
-                    interval = get_interval_from_frequency(
-                        frequency.decode('utf-8') if frequency else 'daily'
-                    )
+                    freq = frequency.decode('utf-8') if frequency else 'daily'
+                    custom_int = int(custom_interval.decode('utf-8')) if custom_interval else None
+                    interval = get_interval_from_frequency(freq, custom_int)
                     next_scan = (last_run + interval).isoformat()
             except KeyError:
                 logger.warning("Schedule entry not found in RedBeat")
