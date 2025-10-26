@@ -186,7 +186,29 @@ docker-compose restart backend
 
 - Python 3.13+
 - Node.js 24+
+- Redis server running locally
 - AWS Account with appropriate credentials
+
+### Install Redis
+
+**Ubuntu/Debian:**
+```bash
+sudo apt-get update
+sudo apt-get install redis-server
+sudo systemctl start redis
+sudo systemctl enable redis
+```
+
+**macOS:**
+```bash
+brew install redis
+brew services start redis
+```
+
+**Verify Redis:**
+```bash
+redis-cli ping  # Should return: PONG
+```
 
 ### Backend Setup
 
@@ -209,9 +231,25 @@ docker-compose restart backend
 4. **Configure environment variables**:
    Create a `.env` file in the backend directory with your AWS credentials and optional notification settings.
 
-5. **Run the backend**:
+5. **Run the backend** (Terminal 1):
    ```bash
    python main.py
+   # OR with uvicorn:
+   uvicorn main:app --reload --host 0.0.0.0 --port 8084
+   ```
+
+6. **Start Celery Worker** (Terminal 2):
+   ```bash
+   ./start_celery_worker.sh
+   # OR manually:
+   celery -A core.celery_app worker --loglevel=info
+   ```
+
+7. **Start Celery Beat Scheduler** (Terminal 3) - Required for scheduled scans:
+   ```bash
+   ./start_celery_beat.sh
+   # OR manually:
+   celery -A core.celery_app beat --loglevel=info --scheduler redbeat.RedBeatScheduler
    ```
 
 ### Frontend Setup
@@ -232,13 +270,21 @@ docker-compose restart backend
    NEXT_PUBLIC_API_URL=http://localhost:8084/api
    ```
 
-4. **Run the development server**:
+4. **Run the development server** (Terminal 4):
    ```bash
    npm run dev
    ```
 
 5. **Access the application**:
    Open [http://localhost:3000/dashboard](http://localhost:3000/dashboard) in your browser
+
+### Running Summary
+
+You need **4 terminals** running simultaneously:
+1. **Terminal 1**: Backend API (`python main.py`)
+2. **Terminal 2**: Celery Worker (`./start_celery_worker.sh`)
+3. **Terminal 3**: Celery Beat (`./start_celery_beat.sh`)
+4. **Terminal 4**: Frontend (`npm run dev`)
 
 ## API Endpoints
 

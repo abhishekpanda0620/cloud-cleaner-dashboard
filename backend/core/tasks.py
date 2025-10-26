@@ -386,7 +386,7 @@ def send_alert_task(
         # Retry the task
 
 
-@celery_app.task(bind=True, name="scheduled_scan_task")
+@celery_app.task(bind=True, name="core.tasks.scheduled_scan_task")
 def scheduled_scan_task(self: Task) -> Dict[str, Any]:
     """
     Scheduled task to scan all AWS resources and send notifications
@@ -482,4 +482,3 @@ def scheduled_scan_task(self: Task) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Error in scheduled scan task: {str(e)}")
         raise self.retry(exc=e, countdown=300)  # Retry after 5 minutes
-        raise self.retry(exc=e, countdown=60)  # Retry after 60 seconds

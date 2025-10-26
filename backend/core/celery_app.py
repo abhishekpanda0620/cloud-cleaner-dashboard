@@ -8,7 +8,6 @@ celery_app = Celery(
     "cloud_cleaner",
     broker=f"redis://{settings.redis_host}:{settings.redis_port}/0",
     backend=f"redis://{settings.redis_host}:{settings.redis_port}/0",
-    include=["core.tasks"]
 )
 
 # Celery configuration
@@ -26,4 +25,8 @@ celery_app.conf.update(
     # RedBeat configuration
     redbeat_redis_url=f"redis://{settings.redis_host}:{settings.redis_port}/1",
     beat_max_loop_interval=5,  # Check for schedule changes every 5 seconds
+    imports=('core.tasks',),  # Import tasks module
 )
+
+# Autodiscover tasks
+celery_app.autodiscover_tasks(['core'], force=True)
