@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import ResourceTab from "@/components/ResourceTab";
 import NotificationCenter from "@/components/NotificationCenter";
 import AlertPanel from "@/components/AlertPanel";
+import ScheduleSettings from "@/components/ScheduleSettings";
 import ResourceDetailsModal from "@/components/ResourceDetailsModal";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import RegionSelector from "@/components/RegionSelector";
@@ -563,6 +564,11 @@ export default function Dashboard() {
             });
           }}
         />
+
+        {/* Schedule Settings */}
+        <div className="mt-6">
+          <ScheduleSettings />
+        </div>
 
         {/* Tabs */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">

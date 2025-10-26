@@ -79,6 +79,34 @@ services:
       - cloud-cleaner-network
     restart: unless-stopped
 
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cloud-cleaner-celery-beat
+    command: celery -A core.celery_app beat --loglevel=info --scheduler redbeat.RedBeatScheduler
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-ap-south-1}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
+      - NOTIFICATION_EMAIL_RECIPIENTS=${NOTIFICATION_EMAIL_RECIPIENTS}
+      - SMTP_SERVER=${SMTP_SERVER:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SENDER_EMAIL=${SENDER_EMAIL}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    env_file:
+      - ./backend/.env
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - cloud-cleaner-network
+    restart: unless-stopped
+
   frontend:
     build:
       context: ./frontend

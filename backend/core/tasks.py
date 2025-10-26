@@ -384,4 +384,102 @@ def send_alert_task(
     except Exception as e:
         logger.error(f"Error in Celery task: {str(e)}")
         # Retry the task
+
+
+@celery_app.task(bind=True, name="scheduled_scan_task")
+def scheduled_scan_task(self: Task) -> Dict[str, Any]:
+    """
+    Scheduled task to scan all AWS resources and send notifications
+    This task is triggered by Celery Beat based on the configured schedule
+    
+    Returns:
+        Dictionary with scan results and notification status
+    """
+    try:
+        logger.info("Starting scheduled scan of all AWS resources...")
+        
+        # Fetch EC2 and EBS data from all regions
+        regional_data = fetch_all_regions_data()
+        
+        # Fetch S3 buckets (global)
+        try:
+            factory = get_aws_client_factory()
+            s3_client = factory.session.client('s3')
+            s3_response = s3_client.list_buckets()
+            s3_count = len(s3_response.get('Buckets', []))
+        except Exception as e:
+            logger.error(f"Error fetching S3 data: {str(e)}")
+            s3_count = 0
+        
+        # Fetch IAM users (global)
+        try:
+            iam_client = factory.session.client('iam')
+            iam_response = iam_client.list_users()
+            iam_users_count = len(iam_response.get('Users', []))
+        except Exception as e:
+            logger.error(f"Error fetching IAM data: {str(e)}")
+            iam_users_count = 0
+        
+        # Prepare resource data
+        resource_data = {
+            'ec2_count': regional_data['ec2_count'],
+            'ebs_count': regional_data['ebs_count'],
+            'ec2_by_region': regional_data['ec2_by_region'],
+            'ebs_by_region': regional_data['ebs_by_region'],
+            's3_count': s3_count,
+            'iam_users_count': iam_users_count,
+            'total_savings': (regional_data['ec2_count'] * 50) + (regional_data['ebs_count'] * 10) + (s3_count * 5)
+        }
+        
+        total_resources = resource_data['ec2_count'] + resource_data['ebs_count'] + resource_data['s3_count'] + resource_data['iam_users_count']
+        
+        logger.info(f"Scheduled scan complete: {total_resources} total resources found")
+        
+        # Get schedule settings from Redis
+        from core.cache import get_redis_client
+        redis_client = get_redis_client()
+        
+        channels_str = redis_client.get('schedule:channels')
+        channels = channels_str.decode('utf-8').split(',') if channels_str else []
+        
+        results = {
+            'scan_timestamp': datetime.now().isoformat(),
+            'total_resources': total_resources,
+            'resource_data': resource_data,
+            'slack_sent': False,
+            'email_sent': False
+        }
+        
+        # Send notifications based on configured channels
+        if 'slack' in channels and settings.slack_webhook_url:
+            logger.info("Sending scheduled Slack notification")
+            message = f"🔔 Scheduled Scan: Found {total_resources} unused AWS resources! Potential savings: ${resource_data['total_savings']:.2f}/month"
+            results['slack_sent'] = send_slack_notification(settings.slack_webhook_url, message, resource_data)
+        
+        if 'email' in channels and settings.notification_email_recipients and settings.smtp_username:
+            logger.info("Sending scheduled Email notification")
+            email_recipients = [email.strip() for email in settings.notification_email_recipients.split(',')]
+            smtp_config = {
+                'smtp_server': settings.smtp_server,
+                'smtp_port': settings.smtp_port,
+                'smtp_username': settings.smtp_username,
+                'smtp_password': settings.smtp_password,
+                'sender_email': settings.sender_email
+            }
+            results['email_sent'] = send_email_notification(
+                email_recipients,
+                f"Scheduled Cloud Cleaner Report: {total_resources} Resources Found",
+                resource_data,
+                smtp_config
+            )
+        
+        # Store last scan timestamp in Redis
+        redis_client.set('schedule:last_scan', datetime.now().isoformat())
+        
+        logger.info(f"Scheduled scan task complete - Slack: {results['slack_sent']}, Email: {results['email_sent']}")
+        return results
+        
+    except Exception as e:
+        logger.error(f"Error in scheduled scan task: {str(e)}")
+        raise self.retry(exc=e, countdown=300)  # Retry after 5 minutes
         raise self.retry(exc=e, countdown=60)  # Retry after 60 seconds

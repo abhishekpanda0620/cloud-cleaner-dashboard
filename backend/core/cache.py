@@ -143,4 +143,17 @@ def invalidate_cache(pattern: str) -> None:
 
 def clear_cache() -> None:
     """Clear all cache"""
+
+
+def get_redis_client():
+    """Get Redis client for direct Redis operations"""
+    import redis
+    from core.config import settings
+    
+    return redis.Redis(
+        host=settings.redis_host,
+        port=settings.redis_port,
+        db=0,
+        decode_responses=False
+    )
     _cache.clear()
