@@ -1,22 +1,102 @@
 # Release Notes
 
-### Version 1.0.0 
-Initial release with core monitoring and notification features.
+## Version 0.3.0 - Scheduled Scans & Advanced Filtering (Current)
+**Release Date**: October 27, 2025
 
-**Key Features**:
-- ✅ Python 3.13 support
-- ✅ Docker & Docker Compose support
-- ✅ Modular frontend architecture
-- ✅ Slack notifications
-- ✅ Email notifications
-- ✅ Separate Alert Buttons (Slack & Email)
-- ✅ Alert Panel UI component
-- ✅ IAM user and access key monitoring
-- ✅ Comprehensive error handling
-- ✅ Professional UI/UX
-- ✅ Complete documentation
+### 🚀 New Features
 
-## Version 2.0.0 - Major Update (Current)
+#### Scheduled Scans
+- **Automated Scanning**: Configure periodic scans of AWS resources
+- **Flexible Scheduling**: Choose from hourly, daily, weekly, or custom intervals
+- **Multi-Channel Notifications**: Send scan results to Slack and/or Email
+- **Manual Triggers**: Scan on-demand with "Scan Now" button
+- **Status Monitoring**: View last and next scan times in real-time
+- **Celery Beat Integration**: Redis-backed scheduler for persistent schedules
+- **Dynamic Updates**: Modify schedules without service restarts
+
+#### Advanced Search & Filtering
+- **Resource Filtering**: Filter resources by name, ID, or tags
+- **Real-time Search**: Instant search results as you type
+- **Filter Persistence**: Maintains filter state across tab switches
+- **Clear Filters**: Quick reset to view all resources
+- **Type-specific Filters**: Tailored filtering for each resource type
+
+### 🎨 UI/UX Enhancements
+- **Schedule Settings Panel**: New component below Alert Panel for schedule configuration
+- **Resource Filters Component**: Search bar with filter controls on each resource tab
+- **Improved Navigation**: Better visual feedback for active filters
+- **Status Indicators**: Clear display of schedule status and scan times
+
+### 🔧 Backend Enhancements
+
+#### New API Endpoints
+- `GET /api/schedule/config` - Get current schedule configuration
+- `POST /api/schedule/config` - Update schedule configuration
+- `GET /api/schedule/status` - Get last/next scan times
+- `POST /api/schedule/enable` - Enable scheduled scans
+- `POST /api/schedule/disable` - Disable scheduled scans
+- `POST /api/schedule/trigger` - Manually trigger a scan
+
+#### New Components
+- **ScheduleSettings.tsx**: Schedule configuration UI component
+- **ResourceFilters.tsx**: Search and filter UI component
+- **useResourceFilters.ts**: Custom hook for filter state management
+- **schedule.py**: Schedule API endpoints
+- **start_celery_beat.sh**: Celery Beat startup script
+
+### 📦 New Dependencies
+
+#### Backend
+- `celery-redbeat==2.2.0` - Redis-backed Celery Beat scheduler
+
+#### Frontend
+- `lucide-react==^0.468.0` - Icon library for UI components
+
+#### Infrastructure
+- **Celery Beat**: Added to docker-compose.yml for scheduled tasks
+
+### 📚 New Documentation
+- **SCHEDULED_SCANS.md**: Complete guide for scheduled scans feature
+  - Configuration instructions
+  - API examples
+  - Troubleshooting guide
+  - Deployment instructions
+
+### 🔄 Migration Guide from v0.2.0
+
+#### Using Docker Compose (Recommended)
+```bash
+# Pull latest changes
+git pull
+
+# Rebuild containers
+docker-compose down
+docker-compose up -d --build
+
+# Verify services (including celery-beat)
+docker-compose ps
+```
+
+#### Local Development
+```bash
+# Update backend dependencies
+cd backend
+pip install -r requirements.txt
+# or with uv
+uv sync
+
+# Start Celery Beat (in separate terminal)
+./start_celery_beat.sh
+# or
+uv run celery -A core.celery_app beat --loglevel=info --scheduler redbeat.RedBeatScheduler
+
+# Other services remain the same (Redis, Celery worker, backend, frontend)
+```
+
+---
+
+## Version 0.2.0 - Major Update
+**Release Date**: October 26, 2025
 
 ### 🚀 Major Features
 
@@ -127,7 +207,7 @@ New endpoints at `/api/celery/*`:
 
 2. **Region Parameter Bug**: Fixed EC2/EBS operations using wrong region
    - Details modal now passes selected region to API
-   - Delete operations include region parameter
+#### Dashboard Redesign
 
 3. **Modal Z-Index Conflicts**: Fixed overlapping modals
    - Setup guide modal: z-index 9999
@@ -229,9 +309,8 @@ curl http://localhost:8000/api/celery/workers
 curl http://localhost:8000/api/celery/stats
 ```
 
-### 🎯 What's Next (v2.1.0 Planned)
+### 🎯 What's Next (v0.4.0 Planned)
 
-- [ ] Scheduled scans (cron-based)
 - [ ] Cost analysis dashboard
 - [ ] Resource tagging support
 - [ ] Bulk delete operations
@@ -239,11 +318,13 @@ curl http://localhost:8000/api/celery/stats
 - [ ] CloudWatch metrics integration
 - [ ] Custom notification templates
 - [ ] Webhook support for third-party integrations
+- [ ] Scan result history and trends
+- [ ] Multi-account support
 
 ---
 
-## Version 1.0.0 - Initial Release
-**Release Date**: December 15, 2024
+## Version 0.1.0 - Initial Release
+**Release Date**: October 25, 2025
 
 ### Core Features
 
