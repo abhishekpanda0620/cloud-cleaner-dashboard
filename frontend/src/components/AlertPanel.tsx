@@ -2,13 +2,12 @@ import { useState } from 'react';
 import NotificationSetupGuide from './NotificationSetupGuide';
 
 interface AlertPanelProps {
-  totalSavings: number;
   s3Count: number;
   iamUsersCount: number;
   onAlertSent?: () => void;
 }
 
-export default function AlertPanel({ totalSavings, s3Count, iamUsersCount, onAlertSent }: AlertPanelProps) {
+export default function AlertPanel({ s3Count, iamUsersCount, onAlertSent }: AlertPanelProps) {
   const [loadingSlack, setLoadingSlack] = useState(false);
   const [loadingEmail, setLoadingEmail] = useState(false);
   const [message, setMessage] = useState('');
@@ -34,12 +33,11 @@ export default function AlertPanel({ totalSavings, s3Count, iamUsersCount, onAle
         body: JSON.stringify({
           resource_type: 'unused_resources',
           count: s3Count + iamUsersCount, // Total global resources
-          estimated_savings: totalSavings,
+          estimated_savings: 0,
           channel: channel,
           details: {
             s3_count: s3Count,
-            iam_users_count: iamUsersCount,
-            total_savings: totalSavings
+            iam_users_count: iamUsersCount
           }
         })
       });
@@ -79,12 +77,11 @@ export default function AlertPanel({ totalSavings, s3Count, iamUsersCount, onAle
     <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl shadow-lg p-6 mb-8 text-white">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <p className="text-sm font-medium text-green-100">Potential Monthly Savings</p>
-          <p className="text-4xl font-bold mt-2">${totalSavings.toFixed(2)}</p>
-          <p className="text-sm text-green-100 mt-2">Send alerts to Slack or Email</p>
+          <p className="text-2xl font-bold">Send Resource Alerts</p>
+          <p className="text-sm text-green-100 mt-2">Notify your team about unused AWS resources via Slack or Email</p>
         </div>
         <div className="h-20 w-20 bg-white/20 rounded-lg flex items-center justify-center">
-          <span className="text-5xl">💰</span>
+          <span className="text-5xl">📢</span>
         </div>
       </div>
 

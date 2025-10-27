@@ -315,8 +315,6 @@ export default function Dashboard() {
     }
   };
 
-  const totalSavings = (data.ec2.length * 50) + (data.ebs.length * 10) + (data.s3.length * 5);
-
   const tabs = [
     { id: 'ec2' as TabType, label: '🖥️ EC2 Instances', count: data.ec2.length, color: 'blue' },
     { id: 'ebs' as TabType, label: '💾 EBS Volumes', count: data.ebs.length, color: 'purple' },
@@ -336,8 +334,7 @@ export default function Dashboard() {
           {value}
         </span>
       )
-    },
-    { header: 'Monthly Cost', accessor: 'cost', render: () => <span className="text-sm font-semibold text-green-600">$50.00</span> }
+    }
   ];
 
   const ebsColumns = [
@@ -351,8 +348,7 @@ export default function Dashboard() {
           {value}
         </span>
       )
-    },
-    { header: 'Monthly Cost', accessor: 'cost', render: () => <span className="text-sm font-semibold text-green-600">$10.00</span> }
+    }
   ];
 
   const s3Columns = [
@@ -361,8 +357,7 @@ export default function Dashboard() {
       header: 'Created',
       accessor: 'creation_date',
       render: (value: string) => <span className="text-sm text-slate-600">{new Date(value).toLocaleDateString()}</span>
-    },
-    { header: 'Monthly Cost', accessor: 'cost', render: () => <span className="text-sm font-semibold text-green-600">$5.00</span> }
+    }
   ];
 
   const iamColumns = [
@@ -660,7 +655,6 @@ export default function Dashboard() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Alert Panel */}
         <AlertPanel
-          totalSavings={totalSavings}
           s3Count={data.s3.length}
           iamUsersCount={data.iam_users.length}
           onAlertSent={() => {

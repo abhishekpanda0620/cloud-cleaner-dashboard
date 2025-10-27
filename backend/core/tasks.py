@@ -7,7 +7,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import requests
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, List, Optional
 
 logger = logging.getLogger(__name__)
@@ -134,6 +134,10 @@ def send_slack_notification(webhook_url: str, message: str, resource_data: Dict[
             {
                 "type": "mrkdwn",
                 "text": f"*IAM Users:*\n{resource_data.get('iam_users_count', 0)}"
+            },
+            {
+                "type": "mrkdwn",
+                "text": f"*Access Keys:*\n{resource_data.get('access_keys_count', 0)} ({resource_data.get('high_risk_keys', 0)} :warning: High Risk)"
             }
         ])
         
@@ -144,7 +148,7 @@ def send_slack_notification(webhook_url: str, message: str, resource_data: Dict[
                     "type": "header",
                     "text": {
                         "type": "plain_text",
-                        "text": "☁️ Cloud Cleaner Alert"
+                        "text": "☁️ Cloud Cleaner 🧹 Alert"
                     }
                 },
                 {
@@ -157,13 +161,6 @@ def send_slack_notification(webhook_url: str, message: str, resource_data: Dict[
                 {
                     "type": "section",
                     "fields": regional_fields
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"💰 *Potential Savings:* ${resource_data.get('total_savings', 0):.2f}/month"
-                    }
                 },
                 {
                     "type": "context",
@@ -265,11 +262,14 @@ def send_email_notification(
                                 <div class="count">{resource_data.get('iam_users_count', 0)}</div>
                                 <p>Inactive users (Global)</p>
                             </div>
-                        </div>
-                        
-                        <div class="savings">
-                            <h2>💰 Potential Monthly Savings</h2>
-                            <h1 style="margin: 10px 0; color: #15803d;">${resource_data.get('total_savings', 0):.2f}</h1>
+                            <div class="resource-card" style="border-left-color: #ef4444;">
+                                <h3>🔑 Access Keys</h3>
+                                <div class="count">{resource_data.get('access_keys_count', 0)}</div>
+                                <p>Unused keys (Global)</p>
+                                <div class="regional-breakdown" style="color: #ef4444; font-weight: bold;">
+                                    ⚠️ {resource_data.get('high_risk_keys', 0)} High Risk (Active)
+                                </div>
+                            </div>
                         </div>
                         
                         <p>Log in to your Cloud Cleaner Dashboard to review and take action on these resources.</p>
@@ -343,6 +343,58 @@ def send_alert_task(
         logger.info("Celery task: Fetching EC2 and EBS data from all regions...")
         regional_data = fetch_all_regions_data()
         
+        # Fetch unused access keys (global) - SECURITY CRITICAL
+        try:
+            factory = get_aws_client_factory()
+            iam_client = factory.session.client('iam')
+            paginator = iam_client.get_paginator('list_users')
+            unused_access_keys = []
+            high_risk_keys = 0
+            cutoff_date = datetime.now(timezone.utc) - timedelta(days=90)
+            
+            for page in paginator.paginate():
+                for user in page.get('Users', []):
+                    user_name = user.get('UserName')
+                    try:
+                        access_keys = iam_client.list_access_keys(UserName=user_name)
+                        keys = access_keys.get('AccessKeyMetadata', [])
+                        
+                        for key in keys:
+                            key_id = key.get('AccessKeyId')
+                            status = key.get('Status')
+                            
+                            try:
+                                key_last_used = iam_client.get_access_key_last_used(AccessKeyId=key_id)
+                                last_used_info = key_last_used.get('AccessKeyLastUsed', {})
+                                last_used_date = last_used_info.get('LastUsedDate')
+                            except:
+                                last_used_date = None
+                            
+                            # Consider key unused if never used or not used in 90+ days
+                            is_unused = last_used_date is None or last_used_date < cutoff_date
+                            
+                            if is_unused:
+                                security_risk = "High" if status == "Active" else "Low"
+                                unused_access_keys.append({
+                                    'key_id': key_id,
+                                    'user_name': user_name,
+                                    'status': status,
+                                    'security_risk': security_risk
+                                })
+                                if security_risk == "High":
+                                    high_risk_keys += 1
+                    except Exception as e:
+                        logger.warning(f"Could not check access keys for user {user_name}: {str(e)}")
+                        continue
+            
+            access_keys_count = len(unused_access_keys)
+            logger.info(f"Found {access_keys_count} unused access keys ({high_risk_keys} high risk)")
+        except Exception as e:
+            logger.error(f"Error fetching access keys: {str(e)}")
+            access_keys_count = 0
+            high_risk_keys = 0
+            unused_access_keys = []
+        
         # Use regional data for EC2 and EBS, use provided data for global resources
         resource_data = {
             'ec2_count': regional_data['ec2_count'],
@@ -351,7 +403,8 @@ def send_alert_task(
             'ebs_by_region': regional_data['ebs_by_region'],
             's3_count': s3_count,
             'iam_users_count': iam_users_count,
-            'total_savings': (regional_data['ec2_count'] * 50) + (regional_data['ebs_count'] * 10) + (s3_count * 5)
+            'access_keys_count': access_keys_count,
+            'high_risk_keys': high_risk_keys
         }
         
         logger.info(f"Multi-region scan complete: {resource_data['ec2_count']} EC2 across {len(resource_data['ec2_by_region'])} regions, {resource_data['ebs_count']} EBS across {len(resource_data['ebs_by_region'])} regions")
@@ -360,12 +413,14 @@ def send_alert_task(
         send_slack = channel is None or channel == 'slack'
         send_email = channel is None or channel == 'email'
         
-        total_resources = resource_data['ec2_count'] + resource_data['ebs_count'] + resource_data['s3_count'] + resource_data['iam_users_count']
+        total_resources = resource_data['ec2_count'] + resource_data['ebs_count'] + resource_data['s3_count'] + resource_data['iam_users_count'] + resource_data['access_keys_count']
         
         # Send Slack notification
         if send_slack and slack_webhook:
             logger.info("Celery task: Sending Slack notification")
-            message = f"🚨 Found {total_resources} unused AWS resources across multiple regions! Potential savings: ${resource_data['total_savings']:.2f}/month"
+            message = f"🚨 Found {total_resources} unused AWS resources across multiple regions!"
+            if resource_data.get('high_risk_keys', 0) > 0:
+                message += f" ⚠️ {resource_data['high_risk_keys']} HIGH RISK access keys detected!"
             results['slack_sent'] = send_slack_notification(slack_webhook, message, resource_data)
         
         # Send Email notification
@@ -373,7 +428,7 @@ def send_alert_task(
             logger.info("Celery task: Sending Email notification")
             results['email_sent'] = send_email_notification(
                 email_recipients,
-                f"Cloud Cleaner Alert: {total_resources} Unused Resources Found",
+                f"☁️ Cloud Cleaner 🧹 Alert: {total_resources} Unused Resources Found",
                 resource_data,
                 smtp_config
             )
@@ -401,12 +456,34 @@ def scheduled_scan_task(self: Task) -> Dict[str, Any]:
         # Fetch EC2 and EBS data from all regions
         regional_data = fetch_all_regions_data()
         
-        # Fetch S3 buckets (global)
+        # Fetch S3 buckets (global) - only unused ones
         try:
             factory = get_aws_client_factory()
             s3_client = factory.session.client('s3')
             s3_response = s3_client.list_buckets()
-            s3_count = len(s3_response.get('Buckets', []))
+            
+            # Filter for unused buckets (same logic as /api/s3/unused)
+            unused_s3_count = 0
+            cutoff_date = datetime.now(timezone.utc) - timedelta(days=90)
+            
+            for bucket in s3_response.get('Buckets', []):
+                bucket_name = bucket.get('Name')
+                creation_date = bucket.get('CreationDate')
+                
+                try:
+                    # Check if bucket is empty
+                    objects = s3_client.list_objects_v2(Bucket=bucket_name, MaxKeys=1)
+                    is_empty = objects.get('KeyCount', 0) == 0
+                    
+                    # Consider bucket unused if it's old or empty
+                    if creation_date < cutoff_date or is_empty:
+                        unused_s3_count += 1
+                except Exception as e:
+                    logger.warning(f"Could not check bucket {bucket_name}: {str(e)}")
+                    continue
+            
+            s3_count = unused_s3_count
+            logger.info(f"Found {s3_count} unused S3 buckets")
         except Exception as e:
             logger.error(f"Error fetching S3 data: {str(e)}")
             s3_count = 0
@@ -420,6 +497,56 @@ def scheduled_scan_task(self: Task) -> Dict[str, Any]:
             logger.error(f"Error fetching IAM data: {str(e)}")
             iam_users_count = 0
         
+        # Fetch unused access keys (global) - SECURITY CRITICAL
+        try:
+            paginator = iam_client.get_paginator('list_users')
+            unused_access_keys = []
+            high_risk_keys = 0
+            cutoff_date = datetime.now(timezone.utc) - timedelta(days=90)
+            
+            for page in paginator.paginate():
+                for user in page.get('Users', []):
+                    user_name = user.get('UserName')
+                    try:
+                        access_keys = iam_client.list_access_keys(UserName=user_name)
+                        keys = access_keys.get('AccessKeyMetadata', [])
+                        
+                        for key in keys:
+                            key_id = key.get('AccessKeyId')
+                            status = key.get('Status')
+                            
+                            try:
+                                key_last_used = iam_client.get_access_key_last_used(AccessKeyId=key_id)
+                                last_used_info = key_last_used.get('AccessKeyLastUsed', {})
+                                last_used_date = last_used_info.get('LastUsedDate')
+                            except:
+                                last_used_date = None
+                            
+                            # Consider key unused if never used or not used in 90+ days
+                            is_unused = last_used_date is None or last_used_date < cutoff_date
+                            
+                            if is_unused:
+                                security_risk = "High" if status == "Active" else "Low"
+                                unused_access_keys.append({
+                                    'key_id': key_id,
+                                    'user_name': user_name,
+                                    'status': status,
+                                    'security_risk': security_risk
+                                })
+                                if security_risk == "High":
+                                    high_risk_keys += 1
+                    except Exception as e:
+                        logger.warning(f"Could not check access keys for user {user_name}: {str(e)}")
+                        continue
+            
+            access_keys_count = len(unused_access_keys)
+            logger.info(f"Found {access_keys_count} unused access keys ({high_risk_keys} high risk)")
+        except Exception as e:
+            logger.error(f"Error fetching access keys: {str(e)}")
+            access_keys_count = 0
+            high_risk_keys = 0
+            unused_access_keys = []
+        
         # Prepare resource data
         resource_data = {
             'ec2_count': regional_data['ec2_count'],
@@ -428,10 +555,11 @@ def scheduled_scan_task(self: Task) -> Dict[str, Any]:
             'ebs_by_region': regional_data['ebs_by_region'],
             's3_count': s3_count,
             'iam_users_count': iam_users_count,
-            'total_savings': (regional_data['ec2_count'] * 50) + (regional_data['ebs_count'] * 10) + (s3_count * 5)
+            'access_keys_count': access_keys_count,
+            'high_risk_keys': high_risk_keys
         }
         
-        total_resources = resource_data['ec2_count'] + resource_data['ebs_count'] + resource_data['s3_count'] + resource_data['iam_users_count']
+        total_resources = resource_data['ec2_count'] + resource_data['ebs_count'] + resource_data['s3_count'] + resource_data['iam_users_count'] + resource_data['access_keys_count']
         
         logger.info(f"Scheduled scan complete: {total_resources} total resources found")
         
@@ -453,7 +581,9 @@ def scheduled_scan_task(self: Task) -> Dict[str, Any]:
         # Send notifications based on configured channels
         if 'slack' in channels and settings.slack_webhook_url:
             logger.info("Sending scheduled Slack notification")
-            message = f"🔔 Scheduled Scan: Found {total_resources} unused AWS resources! Potential savings: ${resource_data['total_savings']:.2f}/month"
+            message = f"🚨 Found {total_resources} unused AWS resources across multiple regions!"
+            if resource_data.get('high_risk_keys', 0) > 0:
+                message += f" ⚠️ {resource_data['high_risk_keys']} HIGH RISK access keys detected!"
             results['slack_sent'] = send_slack_notification(settings.slack_webhook_url, message, resource_data)
         
         if 'email' in channels and settings.notification_email_recipients and settings.smtp_username:
@@ -468,7 +598,7 @@ def scheduled_scan_task(self: Task) -> Dict[str, Any]:
             }
             results['email_sent'] = send_email_notification(
                 email_recipients,
-                f"Scheduled Cloud Cleaner Report: {total_resources} Resources Found",
+                f"Cloud Cleaner Alert: {total_resources} Unused Resources Found",
                 resource_data,
                 smtp_config
             )
