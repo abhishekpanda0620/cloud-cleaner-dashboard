@@ -2,6 +2,15 @@ import LoadingSpinner from './LoadingSpinner';
 import ErrorAlert from './ErrorAlert';
 import EmptyState from './EmptyState';
 import ResourceTable from './ResourceTable';
+import ResourceFilters from './ResourceFilters';
+import { useResourceFilters } from '@/hooks/useResourceFilters';
+
+interface FilterConfig {
+  name: string;
+  label: string;
+  options: { label: string; value: string }[];
+  filterFn: (item: any, value: string) => boolean;
+}
 
 interface ResourceTabProps {
   loading: boolean;
@@ -14,6 +23,8 @@ interface ResourceTabProps {
   infoNote?: string;
   onViewDetails?: (row: any) => void;
   onDelete?: (row: any) => void;
+  searchFields?: string[];
+  filterConfigs?: FilterConfig[];
 }
 
 export default function ResourceTab({
@@ -26,8 +37,26 @@ export default function ResourceTab({
   emptyDescription,
   infoNote,
   onViewDetails,
-  onDelete
+  onDelete,
+  searchFields = [],
+  filterConfigs = [],
 }: ResourceTabProps) {
+  // Use filtering hook
+  const {
+    searchTerm,
+    setSearchTerm,
+    filterValues,
+    updateFilter,
+    filteredData,
+    clearAllFilters,
+    resultCount,
+    totalCount,
+  } = useResourceFilters({
+    data,
+    searchFields,
+    filterConfigs,
+  });
+
   if (loading) {
     return <LoadingSpinner message="Loading resources..." />;
   }
@@ -62,14 +91,38 @@ export default function ResourceTab({
         </div>
       )}
 
+      {/* Filters */}
+      {(searchFields.length > 0 || filterConfigs.length > 0) && (
+        <ResourceFilters
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          filters={filterConfigs.map((config) => ({
+            ...config,
+            value: filterValues[config.name] || 'all',
+            onChange: (value: string) => updateFilter(config.name, value),
+          }))}
+          onClearAll={clearAllFilters}
+          resultCount={resultCount}
+          totalCount={totalCount}
+        />
+      )}
+
       {/* Resource Table */}
-      <ResourceTable
-        columns={columns}
-        data={data}
-        icon={icon}
-        onViewDetails={onViewDetails}
-        onDelete={onDelete}
-      />
+      {filteredData.length === 0 ? (
+        <EmptyState
+          icon="🔍"
+          title="No matching resources"
+          description="Try adjusting your search or filters to find what you're looking for."
+        />
+      ) : (
+        <ResourceTable
+          columns={columns}
+          data={filteredData}
+          icon={icon}
+          onViewDetails={onViewDetails}
+          onDelete={onDelete}
+        />
+      )}
     </div>
   );
 }

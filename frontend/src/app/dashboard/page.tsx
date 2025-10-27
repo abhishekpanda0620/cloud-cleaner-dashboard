@@ -434,7 +434,19 @@ export default function Dashboard() {
       emptyDescription: 'All your instances are running efficiently!',
       infoNote: 'These EC2 instances have been stopped for more than 7 days and were stopped by a user. Stopped instances still incur EBS storage costs. Consider terminating them if no longer needed.',
       onViewDetails: (row: any) => handleViewDetails('ec2', row),
-      onDelete: (row: any) => handleDelete('ec2', row, false)
+      onDelete: (row: any) => handleDelete('ec2', row, false),
+      searchFields: ['id', 'state'],
+      filterConfigs: [
+        {
+          name: 'state',
+          label: 'State',
+          options: [
+            { label: 'Stopped', value: 'stopped' },
+            { label: 'Stopping', value: 'stopping' },
+          ],
+          filterFn: (item: any, value: string) => item.state === value,
+        },
+      ],
     },
     ebs: {
       columns: ebsColumns,
@@ -444,7 +456,34 @@ export default function Dashboard() {
       emptyDescription: 'All your volumes are properly attached!',
       infoNote: 'These EBS volumes are not attached to any EC2 instance and are in "available" state. Unattached volumes still incur storage costs. Delete them if the data is no longer needed.',
       onViewDetails: (row: any) => handleViewDetails('ebs', row),
-      onDelete: (row: any) => handleDelete('ebs', row, false)
+      onDelete: (row: any) => handleDelete('ebs', row, false),
+      searchFields: ['id', 'state'],
+      filterConfigs: [
+        {
+          name: 'size',
+          label: 'Size',
+          options: [
+            { label: 'Small (< 50 GB)', value: 'small' },
+            { label: 'Medium (50-200 GB)', value: 'medium' },
+            { label: 'Large (> 200 GB)', value: 'large' },
+          ],
+          filterFn: (item: any, value: string) => {
+            if (value === 'small') return item.size < 50;
+            if (value === 'medium') return item.size >= 50 && item.size <= 200;
+            if (value === 'large') return item.size > 200;
+            return true;
+          },
+        },
+        {
+          name: 'state',
+          label: 'State',
+          options: [
+            { label: 'Available', value: 'available' },
+            { label: 'Creating', value: 'creating' },
+          ],
+          filterFn: (item: any, value: string) => item.state === value,
+        },
+      ],
     },
     s3: {
       columns: s3Columns,
@@ -454,7 +493,10 @@ export default function Dashboard() {
       emptyDescription: 'All your buckets are being used!',
       infoNote: 'These S3 buckets are either empty or haven\'t been accessed in 90+ days. Empty buckets have minimal cost, but old buckets may contain forgotten data incurring storage charges.',
       onViewDetails: (row: any) => handleViewDetails('s3', row),
-      onDelete: (row: any) => handleDelete('s3', row, true)
+      onDelete: (row: any) => handleDelete('s3', row, true),
+      searchFields: ['name'],
+      filterConfigs: [],
+      
     },
     iam: {
       columns: iamColumns,
@@ -464,7 +506,23 @@ export default function Dashboard() {
       emptyDescription: 'All your roles are actively being used!',
       infoNote: 'These IAM roles haven\'t been used in 90+ days or have never been used. Unused roles pose a security risk and should be deleted to follow the principle of least privilege.',
       onViewDetails: (row: any) => handleViewDetails('iam-role', row),
-      onDelete: (row: any) => handleDelete('iam-role', row, true)
+      onDelete: (row: any) => handleDelete('iam-role', row, true),
+      searchFields: ['name'],
+      filterConfigs: [
+        {
+          name: 'usage',
+          label: 'Usage',
+          options: [
+            { label: 'Never Used', value: 'never' },
+            { label: 'Not Recently Used', value: 'old' },
+          ],
+          filterFn: (item: any, value: string) => {
+            if (value === 'never') return !item.last_used_date;
+            if (value === 'old') return !!item.last_used_date;
+            return true;
+          },
+        },
+      ],
     },
     iam_users: {
       columns: iamUsersColumns,
@@ -474,7 +532,36 @@ export default function Dashboard() {
       emptyDescription: 'All your users have recent activity!',
       infoNote: 'These IAM users either have no access keys and no console access, or haven\'t been active recently. Inactive users should be removed to reduce security risks and maintain a clean IAM structure.',
       onViewDetails: (row: any) => handleViewDetails('iam-user', row),
-      onDelete: (row: any) => handleDelete('iam-user', row, true)
+      onDelete: (row: any) => handleDelete('iam-user', row, true),
+      searchFields: ['name', 'arn'],
+      filterConfigs: [
+        {
+          name: 'console_access',
+          label: 'Console Access',
+          options: [
+            { label: 'Has Access', value: 'yes' },
+            { label: 'No Access', value: 'no' },
+          ],
+          filterFn: (item: any, value: string) => {
+            if (value === 'yes') return item.has_console_access;
+            if (value === 'no') return !item.has_console_access;
+            return true;
+          },
+        },
+        {
+          name: 'access_keys',
+          label: 'Access Keys',
+          options: [
+            { label: 'Has Keys', value: 'yes' },
+            { label: 'No Keys', value: 'no' },
+          ],
+          filterFn: (item: any, value: string) => {
+            if (value === 'yes') return item.access_keys_count > 0;
+            if (value === 'no') return item.access_keys_count === 0;
+            return true;
+          },
+        },
+      ],
     },
     access_keys: {
       columns: accessKeysColumns,
@@ -482,8 +569,29 @@ export default function Dashboard() {
       icon: '🔑',
       emptyTitle: 'No unused access keys',
       emptyDescription: 'All your access keys are being used regularly!',
-      infoNote: 'These access keys haven\'t been used in 90+ days or have never been used. Unused access keys, especially active ones, pose a significant security risk and should be deactivated or deleted immediately.'
-    }
+      infoNote: 'These access keys haven\'t been used in 90+ days or have never been used. Unused access keys, especially active ones, pose a significant security risk and should be deactivated or deleted immediately.',
+      searchFields: ['access_key_id', 'user_name'],
+      filterConfigs: [
+        {
+          name: 'status',
+          label: 'Status',
+          options: [
+            { label: 'Active', value: 'Active' },
+            { label: 'Inactive', value: 'Inactive' },
+          ],
+          filterFn: (item: any, value: string) => item.status === value,
+        },
+        {
+          name: 'risk',
+          label: 'Security Risk',
+          options: [
+            { label: 'High Risk', value: 'High' },
+            { label: 'Medium Risk', value: 'Medium' },
+          ],
+          filterFn: (item: any, value: string) => item.security_risk === value,
+        },
+      ],
+    },
   };
 
   return (
