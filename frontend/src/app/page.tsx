@@ -1,103 +1,148 @@
-import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        {/* Header */}
+        <div className="text-center mb-16">
+          <h1 className="text-5xl font-bold text-slate-900 mb-4">
+            ☁️ Cloud Cleaner 🧹
+          </h1>
+          <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+            Monitor, analyze, and optimize your AWS resources with intelligent cost analysis and automated cleanup
+          </p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        {/* Dashboard Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+          {/* Resource Dashboard Card */}
+          <Link href="/dashboard">
+            <div className="bg-white rounded-2xl shadow-lg border-2 border-slate-200 p-8 hover:shadow-xl hover:border-blue-400 transition-all cursor-pointer group">
+              <div className="flex items-center justify-between mb-6">
+                <div className="h-16 w-16 bg-blue-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <span className="text-3xl">🖥️</span>
+                </div>
+                <div className="text-blue-500 group-hover:translate-x-1 transition-transform">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </div>
+              <h2 className="text-2xl font-bold text-slate-900 mb-3">
+                Resource Dashboard
+              </h2>
+              <p className="text-slate-600 mb-4">
+                Monitor and manage your AWS resources including EC2 instances, EBS volumes, S3 buckets, and IAM resources
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">EC2</span>
+                <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">EBS</span>
+                <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">S3</span>
+                <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">IAM</span>
+              </div>
+            </div>
+          </Link>
+
+          {/* Cost Analysis Card */}
+          <Link href="/cost-analysis">
+            <div className="bg-white rounded-2xl shadow-lg border-2 border-slate-200 p-8 hover:shadow-xl hover:border-emerald-400 transition-all cursor-pointer group">
+              <div className="flex items-center justify-between mb-6">
+                <div className="h-16 w-16 bg-emerald-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <span className="text-3xl">💰</span>
+                </div>
+                <div className="text-emerald-500 group-hover:translate-x-1 transition-transform">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </div>
+              <h2 className="text-2xl font-bold text-slate-900 mb-3">
+                Cost Analysis
+              </h2>
+              <p className="text-slate-600 mb-4">
+                Track costs, identify savings opportunities, and generate detailed reports with cost breakdowns and trends
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium">Savings</span>
+                <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">Reports</span>
+                <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">Trends</span>
+                <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">Export</span>
+              </div>
+            </div>
+          </Link>
+        </div>
+
+        {/* Features Section */}
+        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
+          <h2 className="text-2xl font-bold text-slate-900 mb-6 text-center">
+            Key Features
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center">
+              <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <span className="text-2xl">🔍</span>
+              </div>
+              <h3 className="font-semibold text-slate-900 mb-2">Resource Scanning</h3>
+              <p className="text-sm text-slate-600">
+                Automatically detect unused and underutilized AWS resources
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="h-12 w-12 bg-emerald-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <span className="text-2xl">💸</span>
+              </div>
+              <h3 className="font-semibold text-slate-900 mb-2">Cost Optimization</h3>
+              <p className="text-sm text-slate-600">
+                Calculate potential savings and track cost trends over time
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <span className="text-2xl">📊</span>
+              </div>
+              <h3 className="font-semibold text-slate-900 mb-2">Detailed Reports</h3>
+              <p className="text-sm text-slate-600">
+                Export comprehensive reports in PDF and CSV formats
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="h-12 w-12 bg-orange-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <span className="text-2xl">🔔</span>
+              </div>
+              <h3 className="font-semibold text-slate-900 mb-2">Smart Notifications</h3>
+              <p className="text-sm text-slate-600">
+                Get alerts via email and Slack for important resource changes
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="h-12 w-12 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <span className="text-2xl">⏰</span>
+              </div>
+              <h3 className="font-semibold text-slate-900 mb-2">Scheduled Scans</h3>
+              <p className="text-sm text-slate-600">
+                Automate resource scanning with customizable schedules
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="h-12 w-12 bg-indigo-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <span className="text-2xl">🗑️</span>
+              </div>
+              <h3 className="font-semibold text-slate-900 mb-2">Safe Cleanup</h3>
+              <p className="text-sm text-slate-600">
+                Delete unused resources safely with confirmation dialogs
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="text-center mt-12 text-slate-600">
+          <p className="text-sm">
+            Built with Next.js, FastAPI, and AWS SDK • Version 0.4.0
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
