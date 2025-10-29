@@ -1,4 +1,24 @@
 services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: cloud-cleaner-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=cloud_cleaner
+      - POSTGRES_USER=cloud_cleaner
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme123}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - cloud-cleaner-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cloud_cleaner"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   redis:
     image: redis:7-alpine
     container_name: cloud-cleaner-redis
@@ -36,9 +56,12 @@ services:
       - PORT=8084
       - HOST=0.0.0.0
       - DEBUG=${DEBUG:-false}
+      - DATABASE_URL=postgresql+asyncpg://cloud_cleaner:${POSTGRES_PASSWORD:-changeme123}@postgres:5432/cloud_cleaner
     env_file:
       - ./backend/.env
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
     networks:
@@ -70,9 +93,12 @@ services:
       - SENDER_EMAIL=${SENDER_EMAIL}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - DATABASE_URL=postgresql+asyncpg://cloud_cleaner:${POSTGRES_PASSWORD:-changeme123}@postgres:5432/cloud_cleaner
     env_file:
       - ./backend/.env
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
     networks:
@@ -98,9 +124,12 @@ services:
       - SENDER_EMAIL=${SENDER_EMAIL}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - DATABASE_URL=postgresql+asyncpg://cloud_cleaner:${POSTGRES_PASSWORD:-changeme123}@postgres:5432/cloud_cleaner
     env_file:
       - ./backend/.env
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
     networks:
@@ -135,3 +164,6 @@ services:
 networks:
   cloud-cleaner-network:
     driver: bridge
+
+volumes:
+  postgres_data:

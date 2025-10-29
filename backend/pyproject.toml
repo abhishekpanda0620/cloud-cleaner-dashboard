@@ -7,16 +7,16 @@ requires-python = ">=3.13"
 dependencies = [
     "annotated-types==0.7.0",
     "anyio==4.11.0",
-    "boto3==1.40.55",
-    "botocore==1.40.55",
-    "celery==5.4.0",
-    "celery-redbeat==2.2.0",
+    "boto3==1.40.61",
+    "botocore==1.40.61",
+    "celery==5.5.3",
+    "celery-redbeat==2.3.3",
     "certifi==2025.10.5",
     "charset-normalizer==3.4.4",
     "click==8.3.0",
     "dnspython==2.8.0",
     "email-validator==2.3.0",
-    "fastapi==0.119.0",
+    "fastapi==0.120.1",
     "fastapi-cli==0.0.13",
     "fastapi-cloud-cli==0.3.1",
     "flower==2.0.1",
@@ -62,5 +62,8 @@ dependencies = [
     "watchfiles==1.1.1",
     "websockets==15.0.1",
     "pillow==12.0.0",
-    "reportlab==4.4.4"
+    "reportlab==4.4.4",
+    "asyncpg==0.30.0",
+    "alembic==1.17.1"
+
 ]
