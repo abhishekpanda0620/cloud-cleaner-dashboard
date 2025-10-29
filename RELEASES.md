@@ -1,6 +1,139 @@
 # Release Notes
 
-## Version 0.3.0 - Scheduled Scans & Advanced Filtering (Current)
+## Version 0.4.1 - UI Enhancement & Polish (Current)
+**Release Date**: October 29, 2025
+
+### 🎨 Major UI/UX Overhaul
+
+#### Professional Dashboard Redesign
+- **Stunning Visual Design**: Complete redesign of Resource Dashboard to match Cost Analysis quality
+- **Modern Gradients**: Beautiful gradient backgrounds throughout (blue, indigo, purple, pink, rose)
+- **Enhanced Shadows**: Multi-level shadows for depth (shadow-md, shadow-lg, shadow-xl, shadow-2xl)
+- **Smooth Animations**: Hover effects, scale transforms, rotations, and fade-in animations
+- **Professional Typography**: Bold headings with gradient text effects
+- **Consistent Spacing**: Improved padding and margins (space-y-8) for better visual flow
+
+#### Component Enhancements
+
+**AlertPanel Component**:
+- Redesigned with stunning purple-to-rose gradient background
+- Animated background patterns with blur effects
+- Enhanced buttons with gradient overlays and hover animations
+- Resource count display badge
+- Improved message notifications with icons
+- Smooth hover effects with scale and shadow transitions
+
+**ScheduleSettings Component**:
+- Complete redesign with decorative gradient backgrounds
+- Modern card design with blue-to-indigo gradient accents
+- Enhanced toggle switch with gradient colors
+- Beautiful status cards with gradient backgrounds and icons
+- Improved form inputs with better borders and focus states
+- Channel selection cards with hover effects and gradients
+- Action buttons with gradient backgrounds and animations
+
+**ResourceTable Component**:
+- White card backgrounds with gradient hover effects
+- Decorative gradient overlays on hover
+- Floating icon badge in top-right corner with rotation animation
+- Enhanced action buttons with gradient backgrounds
+- Smooth hover animations with scale and shadow effects
+- Better spacing and visual hierarchy
+
+**ResourceFilters Component**:
+- Modern search input with enhanced focus states
+- Gradient backgrounds for active filter states
+- Animated filter toggle button with rotation
+- Beautiful filter dropdown panel with gradient background
+- Enhanced result count badges with gradients
+- Smooth animations for all interactions
+
+**ResourceTab Component**:
+- Redesigned info notes with gradient backgrounds
+- Animated icon badges with hover effects
+- Better visual hierarchy with shadows and borders
+
+**Dashboard Page Layout**:
+- Improved spacing between sections (space-y-8)
+- Added fade-in animations for panels
+- Enhanced tab design with gradient backgrounds and active states
+- Better border styling (border-2, border-4)
+- Improved overall visual flow
+
+### 🎯 Design Features
+- **Rounded Corners**: Consistent use of rounded-xl and rounded-2xl
+- **Border Styles**: Enhanced borders with gradient effects
+- **Icon Animations**: Icons scale and rotate on hover
+- **Color Palette**: Professional blue/indigo/purple/pink gradient scheme
+- **Accessibility**: Maintained contrast ratios and focus states
+- **Responsive**: All enhancements work across all screen sizes
+
+### 📦 Technical Details
+- No new dependencies added
+- Pure Tailwind CSS enhancements
+- Maintained all existing functionality
+- Improved performance with CSS transforms
+- Better user experience with visual feedback
+
+---
+
+## Version 0.4.0 - Cost Analysis & Reporting
+**Release Date**: October 29, 2025
+
+### 🚀 New Features
+
+#### Cost Analysis Dashboard
+- **Cost Estimation**: Calculate potential savings for unused resources
+- **Cost Breakdown**: Visualize costs by resource type with beautiful gradient cards
+- **Resource-specific Costs**: Detailed cost analysis per resource type (EC2, EBS, S3, IAM, etc.)
+- **Savings Calculator**: Interactive calculator showing daily, monthly, and yearly savings
+- **Professional UI**: Stunning gradient design matching modern SaaS applications
+- **Real-time Updates**: Live cost calculations based on current resource data
+
+#### Export & Reporting
+- **PDF Reports**: Generate professional PDF reports with cost analysis
+- **CSV Export**: Export resource and cost data for external analysis
+- **Download Functionality**: One-click download of reports
+- **Formatted Reports**: Professional formatting with charts and summaries
+
+### 🎨 UI/UX Enhancements
+- **Cost Analysis Page**: New dedicated page at `/cost-analysis`
+- **Gradient Design**: Beautiful emerald-to-teal gradient theme
+- **StatCard Component**: Reusable card component for displaying metrics
+- **Interactive Elements**: Hover effects and smooth transitions throughout
+- **Responsive Layout**: Optimized for all screen sizes
+
+### 🔧 Backend Enhancements
+
+#### New API Endpoints
+- `GET /api/cost-analysis` - Get comprehensive cost analysis data
+- `POST /api/cost-analysis/export/pdf` - Generate and download PDF report
+- `GET /api/cost-analysis/export/csv` - Generate and download CSV export
+
+#### Cost Calculation Engine
+- **Resource Pricing**: Accurate pricing for EC2, EBS, S3, and other resources
+- **Regional Pricing**: Support for region-specific pricing
+- **Savings Estimation**: Calculate potential monthly savings
+- **Trend Analysis**: Track cost changes over time
+
+### 📦 New Dependencies
+
+#### Backend
+- `reportlab==4.0.7` - PDF generation library
+- `matplotlib==3.8.2` - Chart generation for reports
+
+#### Frontend
+- Enhanced StatCard component for metrics display
+- New Cost Analysis page with professional design
+
+### 📚 Documentation Updates
+- Added Cost Analysis feature documentation
+- Updated API documentation with new endpoints
+- Added export functionality guide
+
+---
+
+## Version 0.3.0 - Scheduled Scans & Advanced Filtering
 **Release Date**: October 27, 2025
 
 ### 🚀 New Features

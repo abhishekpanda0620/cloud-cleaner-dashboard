@@ -2,37 +2,15 @@
 
 This document outlines the planned features and improvements for the Cloud Cleaner Dashboard project. The roadmap is organized by version milestones and priority levels.
 
-## Current Version: 0.3.0
-✅ Scheduled Scans & Advanced Filtering
+## Current Version: 0.4.1
+✅ Cost Analysis & Reporting with Professional UI Enhancement
 
----
-
-## Version 0.4.0 - Cost Analysis & Reporting
-**Focus**: Financial insights and data export capabilities
-
-### 🎯 High Priority
-
-#### Cost Analysis Dashboard
-- **Cost Estimation**: Calculate potential savings for unused resources
-- **Cost Breakdown**: Visualize costs by resource type and region
-- **Trend Analysis**: Track cost changes over time
-- **Savings Calculator**: Interactive tool to estimate cleanup savings
-- **Cost Alerts**: Notify when costs exceed thresholds
-
-#### Export & Reporting
-- **PDF Reports**: Generate professional PDF reports with charts
-- **CSV Export**: Export resource data for external analysis
-- **Scheduled Reports**: Automatically generate and email reports
-- **Custom Report Templates**: Create reusable report formats
-- **Historical Data**: Store and compare scan results over time
-
-### 🔧 Medium Priority
-
-#### UI/UX Improvements
-- **Dark Mode**: Toggle between light and dark themes
-- **Dashboard Customization**: Drag-and-drop widget arrangement
-- **Advanced Charts**: Interactive cost and resource visualizations
-- **Mobile Optimization**: Improved responsive design for mobile devices
+### Recently Completed (v0.4.0 - v0.4.1)
+- ✅ Cost Analysis Dashboard with savings calculator
+- ✅ PDF and CSV export functionality
+- ✅ Professional UI redesign for Resource Dashboard
+- ✅ Enhanced components with gradients and animations
+- ✅ Improved visual consistency across all pages
 
 ---
 
@@ -301,7 +279,7 @@ This roadmap is a living document and will be updated regularly based on:
 - Technical feasibility and resource availability
 - Community contributions and priorities
 
-**Last Updated**: October 27, 2025
+**Last Updated**: October 29, 2025
 **Next Review**: TBD
 
 ---
