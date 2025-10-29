@@ -23,7 +23,7 @@ export default function Home() {
               Production Ready
             </span>
             <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-blue-100 text-blue-800 shadow-md">
-              Version 0.4.0
+              Version 0.4.1
             </span>
           </div>
         </div>
