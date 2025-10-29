@@ -8,19 +8,29 @@ A comprehensive AWS resource management dashboard for identifying and tracking u
 
 ### 🔍 Resource Monitoring
 - **🖥️ EC2 Instance Monitoring**: Track stopped EC2 instances across all regions
-- **💾 EBS Volume Management**: Identify unattached EBS volumes across all regions  
+- **💾 EBS Volume Management**: Identify unattached EBS volumes across all regions
 - **🪣 S3 Bucket Analysis**: Find unused or empty S3 buckets (global)
 - **🔐 IAM Role Auditing**: Detect unused IAM roles with usage analysis
 - **👥 IAM User Auditing**: Monitor inactive IAM users with activity tracking
 - **🔑 Access Key Monitoring**: Track unused access keys with security risk assessment
 - **🌐 Multi-Region Scanning**: Comprehensive analysis across all AWS regions
 
+### 💰 Cost Analysis & Reporting
+- **💵 Cost Estimation**: Calculate potential savings for unused resources
+- **📊 Cost Breakdown**: Visualize costs by resource type with beautiful gradient cards
+- **💡 Savings Calculator**: Interactive calculator showing daily, monthly, and yearly savings
+- **📈 Resource-specific Costs**: Detailed cost analysis per resource type (EC2, EBS, S3, IAM)
+- **📄 PDF Reports**: Generate professional PDF reports with cost analysis
+- **📊 CSV Export**: Export resource and cost data for external analysis
+- **🎨 Professional UI**: Stunning gradient design matching modern SaaS applications
+
 ### 📊 Dashboard & UI
-- **Real-time Dashboard**: Modern React-based frontend with live data
+- **Real-time Dashboard**: Modern React-based frontend with live data and stunning gradients
 - **Advanced Filtering**: Search and filter resources by region, status, and metadata
 - **Resource Details**: In-depth view with policies, tags, and usage history
 - **Safe Delete Operations**: Force cleanup options for dependent resources
 - **Security Assessment**: Highlight high-risk resources (active unused access keys)
+- **Professional Design**: Beautiful gradient backgrounds, smooth animations, and modern UI components
 
 ### 🔔 Notifications & Alerts
 - **🔔 Slack Integration**: Real-time alerts with regional breakdown
@@ -57,8 +67,9 @@ cp .env.example .env
 docker-compose up -d
 ```
 
-### 3. Access Dashboard
-- **Frontend**: [http://localhost:3000/dashboard](http://localhost:3000/dashboard)
+### 3. Access Dashboards
+- **Resource Dashboard**: [http://localhost:3000/dashboard](http://localhost:3000/dashboard)
+- **Cost Analysis Dashboard**: [http://localhost:3000/cost-analysis](http://localhost:3000/cost-analysis)
 - **Backend API**: [http://localhost:8084](http://localhost:8084)
 - **API Docs**: [http://localhost:8084/docs](http://localhost:8084/docs)
 
@@ -89,8 +100,10 @@ Detailed configuration reference
 ### 📡 [API Documentation](docs/api.md)
 Complete API reference with examples
 - **Resource Endpoints**: EC2, EBS, S3, IAM API endpoints
+- **Cost Analysis Endpoints**: Cost estimation and reporting APIs
 - **Schedule Endpoints**: Automated scanning configuration
 - **Notification Endpoints**: Alert and notification APIs
+- **Export Endpoints**: PDF and CSV report generation
 - **Request/Response Examples**: Detailed examples for all endpoints
 - **Error Handling**: Error responses and status codes
 
@@ -106,6 +119,8 @@ Automated monitoring and alerts
 Step-by-step usage guide
 - **Dashboard Navigation**: Interface overview and navigation
 - **Resource Management**: Filtering, searching, and managing resources
+- **Cost Analysis**: Understanding cost breakdowns and savings opportunities
+- **Report Generation**: Creating PDF and CSV reports
 - **Alert Panel**: Sending notifications and reports
 - **Schedule Settings**: Configuring automated scanning
 - **Best Practices**: Security and cost optimization tips
@@ -223,6 +238,8 @@ cloud-cleaner-dashboard/
 │   └── main.py               # FastAPI application
 ├── frontend/                  # Next.js frontend
 │   ├── src/app/             # Next.js pages
+│   │   ├── dashboard/       # Resource dashboard
+│   │   └── cost-analysis/   # Cost analysis dashboard
 │   ├── src/components/      # React components
 │   └── src/hooks/          # Custom React hooks
 ├── docs/                     # Documentation
@@ -294,9 +311,10 @@ docker-compose logs -f celery-beat
 
 **See [RELEASES.md](RELEASES.md) for detailed release notes and version history.**
 
+
 ---
 
 **Built with ❤️ for better AWS resource management**
 
-[![GitHub stars](https://img.shields.io/github/stars/your-repo/cloud-cleaner-dashboard.svg?style=social&label=Star)](https://github.com/your-repo/cloud-cleaner-dashboard)
-[![GitHub forks](https://img.shields.io/github/forks/your-repo/cloud-cleaner-dashboard.svg?style=social&label=Fork)](https://github.com/your-repo/cloud-cleaner-dashboard)
+[![GitHub stars](https://img.shields.io/github/stars/abhishekpanda0620/cloud-cleaner-dashboard.svg?style=social&label=Star)](https://github.com/abhishekpanda0620/cloud-cleaner-dashboard)
+[![GitHub forks](https://img.shields.io/github/forks/abhishekpanda0620/cloud-cleaner-dashboard.svg?style=social&label=Fork)](https://github.com/abhishekpanda0620/cloud-cleaner-dashboard)
