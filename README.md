@@ -2,7 +2,7 @@
 
 A comprehensive AWS resource management dashboard for identifying and tracking unused cloud resources to optimize costs. Built with Python 3.13, Docker, and modern web technologies.
 
-![Dashboard Preview](https://via.placeholder.com/800x400/3b82f6/ffffff?text=Cloud+Cleaner+Dashboard)
+![Dashboard Preview](docs/asset/bg.png)
 
 ## ✨ Features
 
