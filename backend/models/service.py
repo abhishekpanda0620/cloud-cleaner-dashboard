@@ -17,7 +17,7 @@ class AWSService(Base):
     first_seen = Column(TIMESTAMP, nullable=False, default=datetime.utcnow)
     last_seen = Column(TIMESTAMP, nullable=False, default=datetime.utcnow)
     total_cost_30d = Column(DECIMAL(10, 2), default=0)
-    metadata = Column(JSONB)
+    service_metadata = Column(JSONB)
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
     updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
     

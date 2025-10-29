@@ -20,7 +20,7 @@ class Resource(Base):
     is_unused = Column(Boolean, default=False, index=True)
     unused_reason = Column(String(255))  # Why it's unused (from Config Rule)
     cost_monthly = Column(DECIMAL(10, 2), default=0)
-    config_data = Column(JSONB)  # Full AWS Config data
+    resource_config = Column(JSONB)  # Full AWS Config data
     first_seen = Column(TIMESTAMP, nullable=False, default=datetime.utcnow)
     last_seen = Column(TIMESTAMP, nullable=False, default=datetime.utcnow)
     created_at = Column(TIMESTAMP, default=datetime.utcnow)

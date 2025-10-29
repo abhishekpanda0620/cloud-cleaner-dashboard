@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     sender_email: Optional[str] = None
     
     # Database Configuration
-    database_url: str = "postgresql+asyncpg://cloud_cleaner:changeme123@postgres:5432/cloud_cleaner"
+    database_url: str
     
     # Redis Configuration
     redis_host: str = "redis"
