@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from api import ec2, ebs, s3, iam, notifications, celery_monitor, schedule, cost_analysis
+from api import scan, services_v2, resources_v2
 from core.config import settings
 from core.aws_client import get_aws_client_factory
 from core.cache import cached
@@ -37,10 +38,17 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(ec2.router, prefix="/api/ec2", tags=["EC2"])
-app.include_router(ebs.router, prefix="/api/ebs", tags=["EBS"])
-app.include_router(s3.router, prefix="/api/s3", tags=["S3"])
-app.include_router(iam.router, prefix="/api/iam", tags=["IAM"])
+
+# V2 API - Dynamic service discovery (new)
+app.include_router(scan.router, prefix="/api/v2", tags=["V2 - Scan Management"])
+app.include_router(services_v2.router, prefix="/api/v2", tags=["V2 - Services"])
+app.include_router(resources_v2.router, prefix="/api/v2", tags=["V2 - Resources"])
+
+# V1 API - Legacy endpoints (deprecated but functional)
+app.include_router(ec2.router, prefix="/api/ec2", tags=["V1 - EC2 (Legacy)"])
+app.include_router(ebs.router, prefix="/api/ebs", tags=["V1 - EBS (Legacy)"])
+app.include_router(s3.router, prefix="/api/s3", tags=["V1 - S3 (Legacy)"])
+app.include_router(iam.router, prefix="/api/iam", tags=["V1 - IAM (Legacy)"])
 app.include_router(notifications.router, prefix="/api/notifications", tags=["Notifications"])
 app.include_router(celery_monitor.router, prefix="/api/celery", tags=["Celery Monitoring"])
 app.include_router(schedule.router, prefix="/api/schedule", tags=["Schedule"])
@@ -67,18 +75,32 @@ async def root():
     """Root endpoint with API information"""
     return {
         "name": settings.app_name,
-        "version": "1.0.0",
+        "version": "2.0.0",
         "status": "running",
-        "endpoints": {
-            "ec2": "/api/ec2",
-            "ebs": "/api/ebs",
-            "s3": "/api/s3",
-            "iam": "/api/iam",
-            "notifications": "/api/notifications",
-            "celery": "/api/celery",
-            "schedule": "/api/schedule",
-            "cost_analysis": "/api/cost-analysis"
-        }
+        "api_versions": {
+            "v2": {
+                "description": "Dynamic service discovery with AWS Config",
+                "endpoints": {
+                    "scan": "/api/v2/scan",
+                    "services": "/api/v2/services",
+                    "resources": "/api/v2/resources"
+                }
+            },
+            "v1": {
+                "description": "Legacy hardcoded endpoints (deprecated)",
+                "endpoints": {
+                    "ec2": "/api/ec2",
+                    "ebs": "/api/ebs",
+                    "s3": "/api/s3",
+                    "iam": "/api/iam",
+                    "notifications": "/api/notifications",
+                    "celery": "/api/celery",
+                    "schedule": "/api/schedule",
+                    "cost_analysis": "/api/cost-analysis"
+                }
+            }
+        },
+        "documentation": "/docs"
     }
 
 

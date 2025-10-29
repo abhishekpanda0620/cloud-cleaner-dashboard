@@ -332,39 +332,22 @@ export default function ScheduleSettings() {
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t-2 border-slate-200">
+          {/* Action Button */}
+          <div className="flex pt-6 border-t-2 border-slate-200">
             <button
               onClick={handleSave}
               disabled={saving || !config.enabled}
-              className="group flex-1 flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-300 disabled:to-slate-400 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 font-semibold"
+              className="group w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-300 disabled:to-slate-400 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 font-semibold"
             >
               {saving ? (
                 <>
                   <RefreshCw className="w-5 h-5 animate-spin" />
-                  Saving...
+                  Updating...
                 </>
               ) : (
                 <>
                   <Bell className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
-                  Save Settings
-                </>
-              )}
-            </button>
-            <button
-              onClick={handleTriggerNow}
-              disabled={triggering}
-              className="group flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 disabled:from-slate-300 disabled:to-slate-400 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 font-semibold"
-            >
-              {triggering ? (
-                <>
-                  <RefreshCw className="w-5 h-5 animate-spin" />
-                  Running...
-                </>
-              ) : (
-                <>
-                  <Play className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
-                  Scan Now
+                  Update Schedule
                 </>
               )}
             </button>

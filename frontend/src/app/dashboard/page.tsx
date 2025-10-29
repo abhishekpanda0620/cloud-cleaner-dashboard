@@ -1,612 +1,126 @@
-"use client"
-import { useEffect, useState } from "react";
-import ResourceTab from "@/components/ResourceTab";
-import NotificationCenter from "@/components/NotificationCenter";
-import AlertPanel from "@/components/AlertPanel";
-import ScheduleSettings from "@/components/ScheduleSettings";
-import ResourceDetailsModal from "@/components/ResourceDetailsModal";
-import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
-import RegionSelector from "@/components/RegionSelector";
-import { useNotifications } from "@/hooks/useNotifications";
+'use client';
 
-interface EC2Instance {
-  id: string;
-  state: string;
-}
+import { useState } from 'react';
+import { useServices } from '@/hooks/useServices';
+import { useResourceSummary } from '@/hooks/useResourcesV2';
+import { Service } from '@/lib/api/types';
+import ScanControl from '@/components/v2/ScanControl';
+import ServiceGrid from '@/components/v2/ServiceGrid';
+import ServiceResourceView from '@/components/v2/ServiceResourceView';
+import StatCard from '@/components/StatCard';
+import NotificationCenter from '@/components/NotificationCenter';
+import ResourceDetailsModal from '@/components/ResourceDetailsModal';
+import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
+import ScheduleSettings from '@/components/ScheduleSettings';
+import { useNotifications } from '@/hooks/useNotifications';
 
-interface EBSVolume {
-  id: string;
-  size: number;
-  state: string;
-}
-
-interface S3Bucket {
-  name: string;
-  creation_date: string;
-}
-
-interface IAMRole {
-  name: string;
-  last_used_date?: string;
-  create_date?: string;
-}
-
-interface IAMUser {
-  name: string;
-  create_date: string;
-  arn: string;
-  has_console_access: boolean;
-  access_keys_count: number;
-  access_keys: Array<{
-    access_key_id: string;
-    status: string;
-    create_date: string;
-  }>;
-}
-
-interface AccessKey {
-  access_key_id: string;
-  user_name: string;
-  status: string;
-  create_date: string;
-  last_used_date?: string;
-  security_risk: string;
-}
-
-interface DashboardData {
-  ec2: EC2Instance[];
-  ebs: EBSVolume[];
-  s3: S3Bucket[];
-  iam: IAMRole[];
-  iam_users: IAMUser[];
-  access_keys: AccessKey[];
-}
-
-type TabType = 'ec2' | 'ebs' | 's3' | 'iam' | 'iam_users' | 'access_keys';
-
-export default function Dashboard() {
-  const [data, setData] = useState<DashboardData>({
-    ec2: [],
-    ebs: [],
-    s3: [],
-    iam: [],
-    iam_users: [],
-    access_keys: []
-  });
-  const [loading, setLoading] = useState(true);
-  const [loadingStates, setLoadingStates] = useState<Record<TabType, boolean>>({
-    ec2: true,
-    ebs: true,
-    s3: true,
-    iam: true,
-    iam_users: true,
-    access_keys: true
-  });
-  const [error, setError] = useState<string | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>('ec2');
-  const [selectedRegion, setSelectedRegion] = useState<string>('us-east-1'); // Default region
+export default function DashboardV2() {
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [detailsModal, setDetailsModal] = useState<{
     isOpen: boolean;
-    resourceType: 'ec2' | 'ebs' | 's3' | 'iam-role' | 'iam-user' | null;
+    resourceType: any;
     resourceId: string;
   }>({ isOpen: false, resourceType: null, resourceId: '' });
   const [deleteModal, setDeleteModal] = useState<{
     isOpen: boolean;
-    resourceType: 'ec2' | 'ebs' | 's3' | 'iam-role' | 'iam-user' | null;
+    resourceType: any;
     resourceId: string;
     resourceName: string;
     showForceOption: boolean;
   }>({ isOpen: false, resourceType: null, resourceId: '', resourceName: '', showForceOption: false });
-  
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8084/api";
+
+  const { services, loading: servicesLoading, error: servicesError, refetch: refetchServices } = useServices();
+  const { summary, loading: summaryLoading } = useResourceSummary();
   const { notifications, addNotification, dismissNotification } = useNotifications();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // Reset all loading states to true
-        setLoadingStates({
-          ec2: true,
-          ebs: true,
-          s3: true,
-          iam: true,
-          iam_users: true,
-          access_keys: true
-        });
-        
-        // Add region parameter for regional resources (EC2, EBS)
-        const regionParam = selectedRegion ? `?region=${selectedRegion}` : '';
-        
-        const endpoints = [
-          { url: `${apiUrl}/ec2/unused${regionParam}`, key: 'ec2' as TabType, dataKey: 'unused_instances' },
-          { url: `${apiUrl}/ebs/unused${regionParam}`, key: 'ebs' as TabType, dataKey: 'unused_volumes' },
-          { url: `${apiUrl}/s3/unused`, key: 's3' as TabType, dataKey: 'unused_buckets' },
-          { url: `${apiUrl}/iam/unused`, key: 'iam' as TabType, dataKey: 'unused_roles' },
-          { url: `${apiUrl}/iam/users/unused`, key: 'iam_users' as TabType, dataKey: 'unused_users' },
-          { url: `${apiUrl}/iam/access-keys/unused`, key: 'access_keys' as TabType, dataKey: 'unused_keys' }
-        ];
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
-        const errors: string[] = [];
-        let loadedCount = 0;
-
-        // Fetch resources one by one (lazy loading)
-        for (const endpoint of endpoints) {
-          try {
-            const response = await fetch(endpoint.url);
-            
-            if (response.ok) {
-              const jsonData = await response.json();
-              const resourceData = jsonData[endpoint.dataKey] || [];
-              
-              // Update state immediately as each resource loads
-              setData(prevData => ({
-                ...prevData,
-                [endpoint.key]: resourceData
-              }));
-              
-              // Mark this resource as loaded
-              setLoadingStates(prev => ({
-                ...prev,
-                [endpoint.key]: false
-              }));
-              
-              loadedCount++;
-              
-              // Turn off global loading after first resource loads
-              if (loadedCount === 1) {
-                setLoading(false);
-                addNotification({
-                  type: 'info',
-                  title: 'Loading Resources',
-                  message: `Loading AWS resources... (${loadedCount}/${endpoints.length})`,
-                  duration: 2000
-                });
-              }
-            } else {
-              errors.push(`${endpoint.key}: ${response.status} ${response.statusText}`);
-              console.error(`Error fetching ${endpoint.key}:`, response.statusText);
-              // Mark as not loading even on error
-              setLoadingStates(prev => ({
-                ...prev,
-                [endpoint.key]: false
-              }));
-            }
-          } catch (err) {
-            errors.push(`${endpoint.key}: ${err instanceof Error ? err.message : 'Network error'}`);
-            console.error(`Error fetching ${endpoint.key}:`, err);
-            // Mark as not loading even on error
-            setLoadingStates(prev => ({
-              ...prev,
-              [endpoint.key]: false
-            }));
-          }
-        }
-
-        // Show final notification and set connection status
-        if (errors.length > 0) {
-          setError(`Some resources failed to load: ${errors.join(', ')}`);
-          setIsConnected(loadedCount > 0); // Connected if at least one resource loaded
-          addNotification({
-            type: 'warning',
-            title: 'Partial Data Load',
-            message: `Loaded ${loadedCount}/${endpoints.length} resource types. ${errors.length} failed.`,
-            duration: 6000
-          });
-        } else {
-          setIsConnected(true); // All resources loaded successfully
-          const totalResources = Object.values(data).reduce((sum, arr) => sum + arr.length, 0);
-          addNotification({
-            type: 'success',
-            title: 'All Resources Loaded',
-            message: `Successfully loaded all ${endpoints.length} resource types${totalResources > 0 ? ` (${totalResources} unused resources found)` : ''}`,
-            duration: 4000
-          });
-        }
-      } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : "Failed to fetch data";
-        setError(errorMsg);
-        setIsConnected(false); // Not connected on complete failure
-        addNotification({
-          type: 'error',
-          title: 'Failed to Load Resources',
-          message: errorMsg,
-          duration: 6000
-        });
-        console.error("Error fetching data:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [apiUrl, addNotification, selectedRegion]);
-
-  const handleRegionChange = (region: string) => {
-    setSelectedRegion(region);
-    addNotification({
-      type: 'info',
-      title: 'Region Changed',
-      message: `Switching to ${region}. Reloading resources...`,
-      duration: 3000
-    });
+  const handleServiceClick = (service: Service) => {
+    setSelectedService(service);
   };
 
-  const refreshData = () => {
-    window.location.reload();
+  const handleBackToServices = () => {
+    setSelectedService(null);
+    refetchServices();
   };
 
-  const handleViewDetails = (resourceType: 'ec2' | 'ebs' | 's3' | 'iam-role' | 'iam-user', row: any) => {
-    const resourceId = resourceType === 's3' ? row.name : resourceType.includes('iam') ? row.name : row.id;
+  const handleViewDetails = (resource: any) => {
     setDetailsModal({
       isOpen: true,
-      resourceType,
-      resourceId
+      resourceType: resource.resource_type,
+      resourceId: resource.resource_id,
     });
   };
 
-  const handleDelete = (resourceType: 'ec2' | 'ebs' | 's3' | 'iam-role' | 'iam-user', row: any, showForce: boolean = false) => {
-    const resourceId = resourceType === 's3' ? row.name : resourceType.includes('iam') ? row.name : row.id;
-    const resourceName = row.name || row.id;
+  const handleDelete = (resource: any) => {
     setDeleteModal({
       isOpen: true,
-      resourceType,
-      resourceId,
-      resourceName,
-      showForceOption: showForce
+      resourceType: resource.resource_type,
+      resourceId: resource.id,
+      resourceName: resource.resource_name || resource.resource_id,
+      showForceOption: false,
     });
   };
 
-  const handleConfirmDelete = async (force?: boolean) => {
-    if (!deleteModal.resourceType || !deleteModal.resourceId) return;
-
+  const handleConfirmDelete = async () => {
     try {
-      let endpoint = '';
-      let method = 'DELETE';
-      
-      switch (deleteModal.resourceType) {
-        case 'ec2':
-          endpoint = `${apiUrl}/ec2/${deleteModal.resourceId}?region=${selectedRegion}`;
-          break;
-        case 'ebs':
-          endpoint = `${apiUrl}/ebs/${deleteModal.resourceId}?region=${selectedRegion}`;
-          break;
-        case 's3':
-          endpoint = `${apiUrl}/s3/${deleteModal.resourceId}${force ? '?force=true' : ''}`;
-          break;
-        case 'iam-role':
-          endpoint = `${apiUrl}/iam/roles/${deleteModal.resourceId}${force ? '?force=true' : ''}`;
-          break;
-        case 'iam-user':
-          endpoint = `${apiUrl}/iam/users/${deleteModal.resourceId}${force ? '?force=true' : ''}`;
-          break;
-      }
-
-      const response = await fetch(endpoint, { method });
+      const response = await fetch(`${apiUrl}/v2/resources/${deleteModal.resourceId}`, {
+        method: 'DELETE',
+      });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: response.statusText }));
-        throw new Error(errorData.detail || `Failed to delete resource: ${response.statusText}`);
+        throw new Error('Failed to delete resource');
       }
-
-      const result = await response.json();
 
       addNotification({
         type: 'success',
         title: 'Resource Deleted',
-        message: result.message || `Successfully deleted ${deleteModal.resourceType} ${deleteModal.resourceName}`,
-        duration: 5000
+        message: `Successfully deleted ${deleteModal.resourceName}`,
+        duration: 5000,
       });
 
-      // Refresh data after successful deletion
-      setTimeout(refreshData, 1000);
-      
+      // Refresh data
+      refetchServices();
+      if (selectedService) {
+        setSelectedService(null);
+      }
     } catch (error) {
       addNotification({
         type: 'error',
         title: 'Delete Failed',
         message: error instanceof Error ? error.message : 'Failed to delete resource',
-        duration: 6000
+        duration: 6000,
       });
       throw error;
     }
   };
 
-  const tabs = [
-    { id: 'ec2' as TabType, label: '🖥️ EC2 Instances', count: data.ec2.length, color: 'blue' },
-    { id: 'ebs' as TabType, label: '💾 EBS Volumes', count: data.ebs.length, color: 'purple' },
-    { id: 's3' as TabType, label: '🪣 S3 Buckets', count: data.s3.length, color: 'orange' },
-    { id: 'iam' as TabType, label: '🔐 IAM Roles', count: data.iam.length, color: 'green' },
-    { id: 'iam_users' as TabType, label: '👥 IAM Users', count: data.iam_users.length, color: 'indigo' },
-    { id: 'access_keys' as TabType, label: '🔑 Access Keys', count: data.access_keys.length, color: 'red' }
-  ];
-
-  const ec2Columns = [
-    { header: 'Instance ID', accessor: 'id', render: (value: string) => <span className="font-mono text-sm font-medium text-slate-900">{value}</span> },
-    {
-      header: 'State',
-      accessor: 'state',
-      render: (value: string) => (
-        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-          {value}
-        </span>
-      )
-    }
-  ];
-
-  const ebsColumns = [
-    { header: 'Volume ID', accessor: 'id', render: (value: string) => <span className="font-mono text-sm font-medium text-slate-900">{value}</span> },
-    { header: 'Size', accessor: 'size', render: (value: number) => <span className="text-sm font-semibold text-slate-900">{value} GB</span> },
-    {
-      header: 'State',
-      accessor: 'state',
-      render: (value: string) => (
-        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800">
-          {value}
-        </span>
-      )
-    }
-  ];
-
-  const s3Columns = [
-    { header: 'Bucket Name', accessor: 'name', render: (value: string) => <span className="font-mono text-sm font-medium text-slate-900">{value}</span> },
-    {
-      header: 'Created',
-      accessor: 'creation_date',
-      render: (value: string) => <span className="text-sm text-slate-600">{new Date(value).toLocaleDateString()}</span>
-    }
-  ];
-
-  const iamColumns = [
-    { header: 'Role Name', accessor: 'name', render: (value: string) => <span className="font-mono text-sm font-medium text-slate-900">{value}</span> },
-    {
-      header: 'Last Used',
-      accessor: 'last_used_date',
-      render: (value: string) => <span className="text-sm text-slate-600">{value ? new Date(value).toLocaleDateString() : 'Never'}</span>
-    }
-  ];
-
-  const iamUsersColumns = [
-    { header: 'User Name', accessor: 'name', render: (value: string) => <span className="font-mono text-sm font-medium text-slate-900">{value}</span> },
-    {
-      header: 'Console Access',
-      accessor: 'has_console_access',
-      render: (value: boolean) => (
-        <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-          {value ? '✓ Yes' : '✗ No'}
-        </span>
-      )
-    },
-    {
-      header: 'Access Keys',
-      accessor: 'access_keys_count',
-      render: (value: number) => <span className="text-sm font-semibold text-slate-900">{value}</span>
-    },
-    {
-      header: 'Created',
-      accessor: 'create_date',
-      render: (value: string) => <span className="text-sm text-slate-600">{new Date(value).toLocaleDateString()}</span>
-    }
-  ];
-
-  const accessKeysColumns = [
-    { header: 'Access Key ID', accessor: 'access_key_id', render: (value: string) => <span className="font-mono text-xs font-medium text-slate-900">{value.substring(0, 10)}...</span> },
-    { header: 'User Name', accessor: 'user_name', render: (value: string) => <span className="text-sm font-medium text-slate-900">{value}</span> },
-    {
-      header: 'Status',
-      accessor: 'status',
-      render: (value: string) => (
-        <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${value === 'Active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-          {value}
-        </span>
-      )
-    },
-    {
-      header: 'Last Used',
-      accessor: 'last_used_date',
-      render: (value: string) => <span className="text-sm text-slate-600">{value ? new Date(value).toLocaleDateString() : 'Never'}</span>
-    },
-    {
-      header: 'Security Risk',
-      accessor: 'security_risk',
-      render: (value: string) => (
-        <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${value === 'High' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
-          {value}
-        </span>
-      )
-    }
-  ];
-
-  const resourceConfig = {
-    ec2: {
-      columns: ec2Columns,
-      data: data.ec2,
-      icon: '🖥️',
-      emptyTitle: 'No stopped EC2 instances',
-      emptyDescription: 'All your instances are running efficiently!',
-      infoNote: 'These EC2 instances have been stopped for more than 7 days and were stopped by a user. Stopped instances still incur EBS storage costs. Consider terminating them if no longer needed.',
-      onViewDetails: (row: any) => handleViewDetails('ec2', row),
-      onDelete: (row: any) => handleDelete('ec2', row, false),
-      searchFields: ['id', 'state'],
-      filterConfigs: [
-        {
-          name: 'state',
-          label: 'State',
-          options: [
-            { label: 'Stopped', value: 'stopped' },
-            { label: 'Stopping', value: 'stopping' },
-          ],
-          filterFn: (item: any, value: string) => item.state === value,
-        },
-      ],
-    },
-    ebs: {
-      columns: ebsColumns,
-      data: data.ebs,
-      icon: '💾',
-      emptyTitle: 'No unattached EBS volumes',
-      emptyDescription: 'All your volumes are properly attached!',
-      infoNote: 'These EBS volumes are not attached to any EC2 instance and are in "available" state. Unattached volumes still incur storage costs. Delete them if the data is no longer needed.',
-      onViewDetails: (row: any) => handleViewDetails('ebs', row),
-      onDelete: (row: any) => handleDelete('ebs', row, false),
-      searchFields: ['id', 'state'],
-      filterConfigs: [
-        {
-          name: 'size',
-          label: 'Size',
-          options: [
-            { label: 'Small (< 50 GB)', value: 'small' },
-            { label: 'Medium (50-200 GB)', value: 'medium' },
-            { label: 'Large (> 200 GB)', value: 'large' },
-          ],
-          filterFn: (item: any, value: string) => {
-            if (value === 'small') return item.size < 50;
-            if (value === 'medium') return item.size >= 50 && item.size <= 200;
-            if (value === 'large') return item.size > 200;
-            return true;
-          },
-        },
-        {
-          name: 'state',
-          label: 'State',
-          options: [
-            { label: 'Available', value: 'available' },
-            { label: 'Creating', value: 'creating' },
-          ],
-          filterFn: (item: any, value: string) => item.state === value,
-        },
-      ],
-    },
-    s3: {
-      columns: s3Columns,
-      data: data.s3,
-      icon: '🪣',
-      emptyTitle: 'No unused S3 buckets',
-      emptyDescription: 'All your buckets are being used!',
-      infoNote: 'These S3 buckets are either empty or haven\'t been accessed in 90+ days. Empty buckets have minimal cost, but old buckets may contain forgotten data incurring storage charges.',
-      onViewDetails: (row: any) => handleViewDetails('s3', row),
-      onDelete: (row: any) => handleDelete('s3', row, true),
-      searchFields: ['name'],
-      filterConfigs: [],
-      
-    },
-    iam: {
-      columns: iamColumns,
-      data: data.iam,
-      icon: '🔐',
-      emptyTitle: 'No unused IAM roles',
-      emptyDescription: 'All your roles are actively being used!',
-      infoNote: 'These IAM roles haven\'t been used in 90+ days or have never been used. Unused roles pose a security risk and should be deleted to follow the principle of least privilege.',
-      onViewDetails: (row: any) => handleViewDetails('iam-role', row),
-      onDelete: (row: any) => handleDelete('iam-role', row, true),
-      searchFields: ['name'],
-      filterConfigs: [
-        {
-          name: 'usage',
-          label: 'Usage',
-          options: [
-            { label: 'Never Used', value: 'never' },
-            { label: 'Not Recently Used', value: 'old' },
-          ],
-          filterFn: (item: any, value: string) => {
-            if (value === 'never') return !item.last_used_date;
-            if (value === 'old') return !!item.last_used_date;
-            return true;
-          },
-        },
-      ],
-    },
-    iam_users: {
-      columns: iamUsersColumns,
-      data: data.iam_users,
-      icon: '👥',
-      emptyTitle: 'No unused IAM users',
-      emptyDescription: 'All your users have recent activity!',
-      infoNote: 'These IAM users either have no access keys and no console access, or haven\'t been active recently. Inactive users should be removed to reduce security risks and maintain a clean IAM structure.',
-      onViewDetails: (row: any) => handleViewDetails('iam-user', row),
-      onDelete: (row: any) => handleDelete('iam-user', row, true),
-      searchFields: ['name', 'arn'],
-      filterConfigs: [
-        {
-          name: 'console_access',
-          label: 'Console Access',
-          options: [
-            { label: 'Has Access', value: 'yes' },
-            { label: 'No Access', value: 'no' },
-          ],
-          filterFn: (item: any, value: string) => {
-            if (value === 'yes') return item.has_console_access;
-            if (value === 'no') return !item.has_console_access;
-            return true;
-          },
-        },
-        {
-          name: 'access_keys',
-          label: 'Access Keys',
-          options: [
-            { label: 'Has Keys', value: 'yes' },
-            { label: 'No Keys', value: 'no' },
-          ],
-          filterFn: (item: any, value: string) => {
-            if (value === 'yes') return item.access_keys_count > 0;
-            if (value === 'no') return item.access_keys_count === 0;
-            return true;
-          },
-        },
-      ],
-    },
-    access_keys: {
-      columns: accessKeysColumns,
-      data: data.access_keys,
-      icon: '🔑',
-      emptyTitle: 'No unused access keys',
-      emptyDescription: 'All your access keys are being used regularly!',
-      infoNote: 'These access keys haven\'t been used in 90+ days or have never been used. Unused access keys, especially active ones, pose a significant security risk and should be deactivated or deleted immediately.',
-      searchFields: ['access_key_id', 'user_name'],
-      filterConfigs: [
-        {
-          name: 'status',
-          label: 'Status',
-          options: [
-            { label: 'Active', value: 'Active' },
-            { label: 'Inactive', value: 'Inactive' },
-          ],
-          filterFn: (item: any, value: string) => item.status === value,
-        },
-        {
-          name: 'risk',
-          label: 'Security Risk',
-          options: [
-            { label: 'High Risk', value: 'High' },
-            { label: 'Medium Risk', value: 'Medium' },
-          ],
-          filterFn: (item: any, value: string) => item.security_risk === value,
-        },
-      ],
-    },
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       {/* Modals */}
-      {detailsModal.isOpen && detailsModal.resourceType && (
+      {detailsModal.isOpen && (
         <ResourceDetailsModal
           isOpen={detailsModal.isOpen}
           onClose={() => setDetailsModal({ isOpen: false, resourceType: null, resourceId: '' })}
           resourceType={detailsModal.resourceType}
           resourceId={detailsModal.resourceId}
           apiUrl={apiUrl}
-          region={selectedRegion}
+          region="us-east-1"
         />
       )}
 
-      {deleteModal.isOpen && deleteModal.resourceType && (
+      {deleteModal.isOpen && (
         <DeleteConfirmationModal
           isOpen={deleteModal.isOpen}
-          onClose={() => setDeleteModal({ isOpen: false, resourceType: null, resourceId: '', resourceName: '', showForceOption: false })}
+          onClose={() =>
+            setDeleteModal({
+              isOpen: false,
+              resourceType: null,
+              resourceId: '',
+              resourceName: '',
+              showForceOption: false,
+            })
+          }
           onConfirm={handleConfirmDelete}
           resourceType={deleteModal.resourceType}
           resourceId={deleteModal.resourceId}
@@ -616,10 +130,7 @@ export default function Dashboard() {
       )}
 
       {/* Notification Center */}
-      <NotificationCenter
-        notifications={notifications}
-        onDismiss={dismissNotification}
-      />
+      <NotificationCenter notifications={notifications} onDismiss={dismissNotification} />
 
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md border-b border-slate-200/50 shadow-lg sticky top-0 z-10">
@@ -631,26 +142,17 @@ export default function Dashboard() {
               </div>
               <div>
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                  Cloud Cleaner
+                  Cloud Cleaner Dashboard
                 </h1>
-                <p className="mt-1 text-sm text-slate-600 flex items-center gap-2">
-                  <span>Monitor and manage your AWS resources</span>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${isConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                    <span className={`h-1.5 w-1.5 rounded-full mr-1 ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
-                    {isConnected ? 'Live' : 'Offline'}
-                  </span>
+                <p className="mt-1 text-sm text-slate-600">
+                  Dynamic AWS Resource Discovery v0.5.0
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              {/* Region Selector - Only for EC2 and EBS tabs */}
-              {(activeTab === 'ec2' || activeTab === 'ebs') && (
-                <RegionSelector
-                  selectedRegion={selectedRegion}
-                  onRegionChange={handleRegionChange}
-                  apiUrl={apiUrl}
-                />
-              )}
+              <span className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+                v0.5.0
+              </span>
             </div>
           </div>
         </div>
@@ -658,67 +160,72 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* Alert Panel */}
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <AlertPanel
-            s3Count={data.s3.length}
-            iamUsersCount={data.iam_users.length}
-            onAlertSent={() => {
-              addNotification({
-                type: 'success',
-                title: 'Alert Sent',
-                message: 'Resource summary has been sent to your configured channels',
-                duration: 4000
-              });
-            }}
+        {selectedService ? (
+          /* Service Detail View */
+          <ServiceResourceView
+            service={selectedService}
+            onBack={handleBackToServices}
+            onViewDetails={handleViewDetails}
+            onDelete={handleDelete}
           />
-        </div>
+        ) : (
+          /* Services Overview */
+          <>
+            {/* Scan Control */}
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <ScanControl />
+            </div>
 
-        {/* Schedule Settings */}
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <ScheduleSettings />
-        </div>
+            {/* Overall Statistics */}
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <StatCard
+                  title="Total Resources"
+                  value={summary?.total_resources || 0}
+                  icon="📦"
+                  bgColor="bg-gradient-to-br from-blue-500 to-blue-600"
+                  loading={summaryLoading}
+                />
+                <StatCard
+                  title="Unused Resources"
+                  value={summary?.unused_resources || 0}
+                  icon="⚠️"
+                  bgColor="bg-gradient-to-br from-red-500 to-red-600"
+                  loading={summaryLoading}
+                />
+                <StatCard
+                  title="Services Discovered"
+                  value={services.length}
+                  icon="🔍"
+                  bgColor="bg-gradient-to-br from-purple-500 to-purple-600"
+                  loading={servicesLoading}
+                />
+              </div>
+            </div>
 
-        {/* Tabs */}
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000 bg-white rounded-2xl shadow-xl border border-slate-200/50 overflow-hidden hover:shadow-2xl transition-shadow duration-300">
-          <div className="border-b-2 border-slate-200 overflow-x-auto bg-gradient-to-r from-slate-50 to-blue-50">
-            <nav className="flex -mb-px">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`group relative px-6 py-4 text-sm font-bold border-b-4 transition-all duration-300 whitespace-nowrap ${
-                    activeTab === tab.id
-                      ? `border-${tab.color}-500 text-${tab.color}-600 bg-white shadow-sm`
-                      : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300 hover:bg-white/70'
-                  }`}
-                >
-                  {activeTab === tab.id && (
-                    <div className="absolute inset-0 bg-gradient-to-b from-blue-50 to-transparent opacity-50"></div>
-                  )}
-                  <span className="relative flex items-center gap-2">
-                    {tab.label}
-                    <span className={`inline-flex items-center justify-center min-w-[24px] px-2 py-0.5 rounded-full text-xs font-bold shadow-sm transition-all duration-300 ${
-                      activeTab === tab.id
-                        ? `bg-gradient-to-r from-${tab.color}-500 to-${tab.color}-600 text-white`
-                        : 'bg-slate-200 text-slate-600 group-hover:bg-slate-300'
-                    }`}>
-                      {tab.count}
-                    </span>
-                  </span>
-                </button>
-              ))}
-            </nav>
-          </div>
+            {/* Schedule Settings */}
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-600">
+              <ScheduleSettings />
+            </div>
 
-          <div className="p-8 min-h-96 overflow-auto bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
-            <ResourceTab
-              loading={loadingStates[activeTab]}
-              error={error}
-              {...resourceConfig[activeTab]}
-            />
-          </div>
-        </div>
+            {/* Services Grid */}
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">Discovered Services</h2>
+                <p className="text-sm text-slate-600">
+                  Click on a service to view its resources and identify unused ones
+                </p>
+              </div>
+              <ServiceGrid
+                services={services}
+                loading={servicesLoading}
+                error={servicesError}
+                onServiceClick={handleServiceClick}
+              />
+            </div>
+
+          </>
+        )}
       </main>
     </div>
   );

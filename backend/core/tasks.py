@@ -444,16 +444,55 @@ def send_alert_task(
 @celery_app.task(bind=True, name="core.tasks.scheduled_scan_task")
 def scheduled_scan_task(self: Task) -> Dict[str, Any]:
     """
-    Scheduled task to scan all AWS resources and send notifications
-    This task is triggered by Celery Beat based on the configured schedule
+    Scheduled task to scan all AWS resources and send notifications.
+    Now uses v0.5.0 discovery engine for comprehensive scanning.
     
     Returns:
         Dictionary with scan results and notification status
     """
+    import asyncio
+    from models import AsyncSessionLocal
+    from models.scan_history import ScanHistory
+    from sqlalchemy import select
+    
     try:
-        logger.info("Starting scheduled scan of all AWS resources...")
+        logger.info("Starting scheduled v0.5.0 discovery scan...")
         
-        # Fetch EC2 and EBS data from all regions
+        # Run v0.5.0 discovery scan
+        async def run_discovery():
+            async with AsyncSessionLocal() as db:
+                # Create scan record
+                scan = ScanHistory(
+                    scan_type='scheduled_discovery',
+                    status='running',
+                    started_at=datetime.utcnow()
+                )
+                db.add(scan)
+                await db.commit()
+                await db.refresh(scan)
+                
+                try:
+                    from services.aws.discovery import AWSServiceDiscoveryEngine
+                    engine = AWSServiceDiscoveryEngine()
+                    result = await engine.discover_all(db, lookback_days=30)
+                    logger.info(f"Scheduled scan completed: {result}")
+                    return result
+                except Exception as e:
+                    logger.error(f"Scheduled scan failed: {e}", exc_info=True)
+                    scan.status = 'failed'
+                    scan.error_message = str(e)
+                    scan.completed_at = datetime.utcnow()
+                    await db.commit()
+                    raise
+        
+        scan_result = asyncio.run(run_discovery())
+        
+        # Get resource counts from scan result
+        services_found = scan_result.get('services_found', 0)
+        resources_found = scan_result.get('resources_found', 0)
+        unused_resources = scan_result.get('unused_resources', 0)
+        
+        # For backward compatibility with notifications, also fetch old-style data
         regional_data = fetch_all_regions_data()
         
         # Fetch S3 buckets (global) - only unused ones
@@ -612,3 +651,64 @@ def scheduled_scan_task(self: Task) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Error in scheduled scan task: {str(e)}")
         raise self.retry(exc=e, countdown=300)  # Retry after 5 minutes
+
+
+@celery_app.task(bind=True, name="core.tasks.discovery_scan_task")
+def discovery_scan_task(self: Task, scan_id: int, lookback_days: int) -> Dict[str, Any]:
+    """
+    Celery task to run v0.5.0 discovery scan.
+    
+    Args:
+        self: Celery task instance
+        scan_id: Scan history record ID
+        lookback_days: Days to look back for costs
+        
+    Returns:
+        Dictionary with scan results
+    """
+    import asyncio
+    from models import AsyncSessionLocal
+    from services.aws.discovery import AWSServiceDiscoveryEngine
+    
+    logger.info(f"Celery task: Starting discovery scan {scan_id}")
+    
+    async def run_scan():
+        async with AsyncSessionLocal() as db:
+            try:
+                logger.info(f"Creating discovery engine for scan {scan_id}")
+                engine = AWSServiceDiscoveryEngine()
+                
+                logger.info(f"Running discover_all for scan {scan_id}")
+                result = await engine.discover_all(db, lookback_days=lookback_days)
+                
+                logger.info(f"Scan {scan_id} completed: {result}")
+                return result
+                
+            except Exception as e:
+                logger.error(f"Scan {scan_id} failed: {e}", exc_info=True)
+                
+                # Update scan record with error
+                from models.scan_history import ScanHistory
+                from sqlalchemy import select
+                
+                result = await db.execute(
+                    select(ScanHistory).where(ScanHistory.id == scan_id)
+                )
+                scan = result.scalar_one_or_none()
+                
+                if scan:
+                    scan.status = 'failed'
+                    scan.error_message = str(e)
+                    scan.completed_at = datetime.utcnow()
+                    await db.commit()
+                
+                raise
+    
+    # Run the async function
+    try:
+        result = asyncio.run(run_scan())
+        logger.info(f"Celery task complete for scan {scan_id}: {result}")
+        return result
+    except Exception as e:
+        logger.error(f"Celery task failed for scan {scan_id}: {e}")
+        raise

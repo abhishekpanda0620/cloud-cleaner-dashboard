@@ -5,6 +5,12 @@ from core.config import settings
 
 Base = declarative_base()
 
+# Import models to register them with Base
+from .service import AWSService
+from .resource import Resource
+from .cost_history import CostHistory
+from .scan_history import ScanHistory
+
 # Create async engine
 engine = create_async_engine(
     settings.database_url,

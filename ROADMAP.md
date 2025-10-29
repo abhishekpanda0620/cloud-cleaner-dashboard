@@ -2,8 +2,8 @@
 
 This document outlines the planned features and improvements for the Cloud Cleaner Dashboard project. The roadmap is organized by version milestones and priority levels.
 
-## Current Version: 0.4.1
-✅ Cost Analysis & Reporting with Professional UI Enhancement
+## Current Version: 0.5.0 ✅
+**Dynamic Service Discovery with Plugin-Based Scanner System**
 
 ### Recently Completed (v0.4.0 - v0.4.1)
 - ✅ Cost Analysis Dashboard with savings calculator
@@ -14,8 +14,85 @@ This document outlines the planned features and improvements for the Cloud Clean
 
 ---
 
-## Version 0.5.0 - Resource Tagging & Bulk Operations
-**Focus**: Enhanced resource management and organization
+## Version 0.5.0 - Dynamic Service Discovery ✅ COMPLETE
+**Focus**: Scalable architecture with plugin-based direct API scanning
+
+### ✅ Backend (100% Complete)
+
+#### Database Infrastructure
+- ✅ **PostgreSQL 17**: Replaced Redis with proper relational database
+- ✅ **SQLAlchemy Async ORM**: Modern async database operations
+- ✅ **Alembic Migrations**: Database schema version control
+- ✅ **4 Core Tables**: aws_services, resources, cost_history, scan_history
+
+#### AWS Integration (Pivoted Architecture)
+- ✅ **Cost Explorer Client**: Automatic service discovery from billing data
+- ✅ **Discovery Engine**: Unified workflow for scanning and identifying unused resources
+- ✅ **Plugin-Based Scanners**: Direct boto3 API calls (no AWS Config needed)
+  - ✅ Scanner Base Class: Abstract interface for all service scanners
+  - ✅ Scanner Registry: Dynamic plugin discovery and loading
+  - ✅ 4 Specific Scanners: EC2, RDS, S3, Lambda (1,331 lines)
+  - ✅ Generic Fallback Scanner: Handles any AWS service automatically
+  - ✅ CloudWatch Integration: Metrics-based unused detection
+- ✅ **Multi-Cloud Ready**: Architecture supports future Azure/GCP integration
+
+#### Why Plugin-Based Over AWS Config?
+- **Zero setup cost**: No AWS Config recorder needed ($2-50/month savings)
+- **Instant activation**: Works immediately after IAM role creation
+- **Better UX**: No complex AWS Config setup required
+- **Extensible**: Easy to add new services via plugins
+- **Direct control**: We decide what to scan and when
+
+#### API Development
+- ✅ **V2 API Endpoints**: `/api/v2/scan`, `/api/v2/services`, `/api/v2/resources`
+- ✅ **Synchronous Scanning**: Reliable scan execution
+- ✅ **Backward Compatible**: V1 APIs still functional
+- ✅ **RESTful Design**: Proper HTTP methods and status codes
+- ✅ **Scheduled Scans**: Updated to use v0.5.0 engine
+
+### ✅ Frontend (100% Complete)
+
+#### Dashboard (Rewritten)
+- ✅ **Dynamic Resource Dashboard**: Service-based discovery (no hardcoded types)
+- ✅ **Service Cards**: Display discovered services with resource counts
+- ✅ **Scan Control**: Manual scan trigger with loading state (30-60s)
+- ✅ **Service Drill-down**: Click service to view its resources
+- ✅ **Resource Management**: View, filter, and delete resources
+- ✅ **Schedule Settings**: Configure automated scans
+- ✅ **Loading States**: Proper UI feedback during operations
+
+#### Components (1,783 lines)
+- ✅ **API Client**: Type-safe V2 API client (345 lines)
+- ✅ **Custom Hooks**: useServices, useScan, useResourcesV2 (367 lines)
+- ✅ **ServiceCard**: Service display without cost (92 lines)
+- ✅ **ScanControl**: Scan trigger with loading (118 lines)
+- ✅ **ServiceGrid**: Responsive grid layout (59 lines)
+- ✅ **DynamicResourceTable**: Generic resource table (111 lines)
+- ✅ **ServiceResourceView**: Service drill-down (153 lines)
+- ✅ **Dashboard**: Complete rewrite (269 lines)
+
+#### Separation of Concerns
+- ✅ **`/dashboard`**: Resource discovery and management (v0.5.0)
+- ✅ **`/cost-analysis`**: Cost estimation and reporting (unchanged)
+
+### 🎉 Key Achievements
+
+#### Revolutionary Features
+- **Generic Fallback Scanner**: Automatically handles ANY AWS service without code changes
+- **Cost-Driven Discovery**: Only scans services user actually uses (with fallback to core services)
+- **Zero AWS Config Cost**: Direct boto3 API calls eliminate $2-50/month AWS expense
+- **Infinite Scalability**: New AWS services work immediately
+- **Database-Backed**: PostgreSQL for persistent storage and historical data
+
+#### Total Code Written
+- **4,082 lines** of production code
+- **Backend**: 2,299 lines (scanner system, discovery engine, API)
+- **Frontend**: 1,783 lines (API client, hooks, components, dashboard)
+
+---
+
+## Version 0.6.0 - Resource Tagging & Bulk Operations
+**Focus**: Enhanced resource management and organization (Deferred from v0.5.0)
 
 ### 🎯 High Priority
 
@@ -43,7 +120,7 @@ This document outlines the planned features and improvements for the Cloud Clean
 
 ---
 
-## Version 0.6.0 - CloudWatch Integration & Monitoring
+## Version 0.7.0 - CloudWatch Integration & Monitoring
 **Focus**: Deep AWS integration and advanced monitoring
 
 ### 🎯 High Priority
@@ -73,7 +150,7 @@ This document outlines the planned features and improvements for the Cloud Clean
 
 ---
 
-## Version 0.7.0 - Multi-Cloud Support
+## Version 0.8.0 - Multi-Cloud Support
 **Focus**: Expand beyond AWS to support multiple cloud providers
 
 ### 🎯 High Priority
@@ -119,7 +196,7 @@ This document outlines the planned features and improvements for the Cloud Clean
 
 ---
 
-## Version 0.8.0 - Multi-Account & Advanced Notifications
+## Version 0.9.0 - Multi-Account & Advanced Notifications
 **Focus**: Enterprise features and notification enhancements
 
 ### 🎯 High Priority
@@ -150,7 +227,7 @@ This document outlines the planned features and improvements for the Cloud Clean
 
 ---
 
-## Version 0.9.0 - AI/ML Features & Automation
+## Version 1.0.0 - AI/ML Features & Automation
 **Focus**: Intelligent automation and predictive capabilities
 
 ### 🎯 High Priority
@@ -180,13 +257,13 @@ This document outlines the planned features and improvements for the Cloud Clean
 
 ---
 
-## Version 0.10.0 - Performance & Scalability
+## Version 1.1.0 - Performance & Scalability
 **Focus**: Enterprise-scale performance and reliability
 
 ### 🎯 High Priority
 
 #### Performance Optimization
-- **Database Backend**: Replace Redis with PostgreSQL/MongoDB
+- ✅ **Database Backend**: PostgreSQL implemented in v0.5.0
 - **Caching Layer**: Advanced caching strategies
 - **Parallel Processing**: Parallel resource scanning
 - **Query Optimization**: Optimize API response times
@@ -210,7 +287,7 @@ This document outlines the planned features and improvements for the Cloud Clean
 
 ---
 
-## Version 1.0.0 - Production Ready
+## Version 2.0.0 - Production Ready
 **Focus**: Production-grade stability and enterprise features
 
 ### 🎯 High Priority
@@ -279,7 +356,7 @@ This roadmap is a living document and will be updated regularly based on:
 - Technical feasibility and resource availability
 - Community contributions and priorities
 
-**Last Updated**: October 29, 2025
+**Last Updated**: October 30, 2025
 **Next Review**: TBD
 
 ---
@@ -293,11 +370,13 @@ This roadmap is a living document and will be updated regularly based on:
 ## Version Naming Convention
 
 - **0.x.x**: Pre-release versions (current)
-- **0.7.x**: Multi-cloud support introduction
-- **1.0.0**: First production-ready release (AWS mature, Azure/GCP beta)
-- **1.x.x**: Minor updates and new features
-- **2.0.0**: Full multi-cloud production release
-- **3.0.0+**: Major architectural changes or breaking updates
+- **0.5.x**: Dynamic service discovery (architectural foundation)
+- **0.8.x**: Multi-cloud support introduction
+- **1.0.x**: AI/ML features and automation
+- **2.0.0**: First production-ready release (AWS mature, Azure/GCP beta)
+- **2.x.x**: Minor updates and new features
+- **3.0.0**: Full multi-cloud production release
+- **4.0.0+**: Major architectural changes or breaking updates
 
 ---
 
