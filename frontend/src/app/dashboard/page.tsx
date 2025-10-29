@@ -590,7 +590,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       {/* Modals */}
       {detailsModal.isOpen && detailsModal.resourceType && (
         <ResourceDetailsModal
@@ -622,18 +622,27 @@ export default function Dashboard() {
       />
 
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 shadow-sm">
+      <header className="bg-white/80 backdrop-blur-md border-b border-slate-200/50 shadow-lg sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900">
-                ☁️ Cloud Cleaner 🧹
-              </h1>
-              <p className="mt-1 text-sm text-slate-600">
-                Monitor and manage your AWS resources efficiently
-              </p>
+            <div className="flex items-center space-x-4">
+              <div className="h-12 w-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                <span className="text-2xl">☁️</span>
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  Cloud Cleaner
+                </h1>
+                <p className="mt-1 text-sm text-slate-600 flex items-center gap-2">
+                  <span>Monitor and manage your AWS resources</span>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${isConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full mr-1 ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
+                    {isConnected ? 'Live' : 'Offline'}
+                  </span>
+                </p>
+              </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               {/* Region Selector - Only for EC2 and EBS tabs */}
               {(activeTab === 'ec2' || activeTab === 'ebs') && (
                 <RegionSelector
@@ -642,57 +651,67 @@ export default function Dashboard() {
                   apiUrl={apiUrl}
                 />
               )}
-              <div className="flex items-center space-x-2">
-                <div className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-                <span className="text-sm text-slate-600">{isConnected ? 'Connected' : 'Not Connected'}</span>
-              </div>
             </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Alert Panel */}
-        <AlertPanel
-          s3Count={data.s3.length}
-          iamUsersCount={data.iam_users.length}
-          onAlertSent={() => {
-            addNotification({
-              type: 'success',
-              title: 'Alert Sent',
-              message: 'Resource summary has been sent to your configured channels',
-              duration: 4000
-            });
-          }}
-        />
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <AlertPanel
+            s3Count={data.s3.length}
+            iamUsersCount={data.iam_users.length}
+            onAlertSent={() => {
+              addNotification({
+                type: 'success',
+                title: 'Alert Sent',
+                message: 'Resource summary has been sent to your configured channels',
+                duration: 4000
+              });
+            }}
+          />
+        </div>
 
         {/* Schedule Settings */}
-        <div className="mt-6">
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
           <ScheduleSettings />
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="border-b border-slate-200 overflow-x-auto">
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000 bg-white rounded-2xl shadow-xl border border-slate-200/50 overflow-hidden hover:shadow-2xl transition-shadow duration-300">
+          <div className="border-b-2 border-slate-200 overflow-x-auto bg-gradient-to-r from-slate-50 to-blue-50">
             <nav className="flex -mb-px">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                  className={`group relative px-6 py-4 text-sm font-bold border-b-4 transition-all duration-300 whitespace-nowrap ${
                     activeTab === tab.id
-                      ? `border-${tab.color}-500 text-${tab.color}-600`
-                      : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
+                      ? `border-${tab.color}-500 text-${tab.color}-600 bg-white shadow-sm`
+                      : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300 hover:bg-white/70'
                   }`}
                 >
-                  {tab.label} ({tab.count})
+                  {activeTab === tab.id && (
+                    <div className="absolute inset-0 bg-gradient-to-b from-blue-50 to-transparent opacity-50"></div>
+                  )}
+                  <span className="relative flex items-center gap-2">
+                    {tab.label}
+                    <span className={`inline-flex items-center justify-center min-w-[24px] px-2 py-0.5 rounded-full text-xs font-bold shadow-sm transition-all duration-300 ${
+                      activeTab === tab.id
+                        ? `bg-gradient-to-r from-${tab.color}-500 to-${tab.color}-600 text-white`
+                        : 'bg-slate-200 text-slate-600 group-hover:bg-slate-300'
+                    }`}>
+                      {tab.count}
+                    </span>
+                  </span>
                 </button>
               ))}
             </nav>
           </div>
 
-          <div className="p-6 h-96 overflow-auto">
+          <div className="p-8 min-h-96 overflow-auto bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
             <ResourceTab
               loading={loadingStates[activeTab]}
               error={error}
