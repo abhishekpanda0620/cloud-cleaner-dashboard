@@ -56,7 +56,16 @@ export default function ServiceGrid({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {services.map((service) => (
+      {services
+        .filter(service => {
+          // Hide services with no resources AND no cost
+          // Some services might have cost but no resources (e.g. data transfer), so we keep those
+          // Some might have resources but no cost (free tier), so we keep those
+          const hasResources = service.resource_count > 0;
+          const hasCost = (service.total_cost_30d > 0) || ((service.monthly_cost || 0) > 0);
+          return hasResources || hasCost;
+        })
+        .map((service) => (
         <ServiceCard
           key={service.service_code}
           service={service}
