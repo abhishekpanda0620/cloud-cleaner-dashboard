@@ -1,6 +1,15 @@
 "use client";
 
 import { useState } from 'react';
+import { 
+  AlertTriangle, 
+  Trash2, 
+  X, 
+  ShieldAlert, 
+  AlertOctagon,
+  Check,
+  Loader2
+} from 'lucide-react';
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean;
@@ -29,18 +38,12 @@ export default function DeleteConfirmationModal({
 
   const getResourceTypeLabel = () => {
     switch (resourceType) {
-      case 'ec2':
-        return 'EC2 Instance';
-      case 'ebs':
-        return 'EBS Volume';
-      case 's3':
-        return 'S3 Bucket';
-      case 'iam-role':
-        return 'IAM Role';
-      case 'iam-user':
-        return 'IAM User';
-      default:
-        return 'Resource';
+      case 'ec2': return 'EC2 Instance';
+      case 'ebs': return 'EBS Volume';
+      case 's3': return 'S3 Bucket';
+      case 'iam-role': return 'IAM Role';
+      case 'iam-user': return 'IAM User';
+      default: return 'Resource';
     }
   };
 
@@ -94,156 +97,153 @@ export default function DeleteConfirmationModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] overflow-y-auto">
-      <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        {/* Background overlay with blur */}
+    <div className="fixed inset-0 z-[100] overflow-y-auto">
+      <div className="flex items-center justify-center min-h-screen p-4 text-center sm:block sm:p-0">
+        {/* Background overlay with blur - matches ResourceDetailsModal style */}
         <div
-          className="fixed inset-0 transition-opacity backdrop-blur-sm bg-black/30"
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity"
           onClick={handleClose}
         />
 
         {/* Center alignment helper */}
-        <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true"></span>
+        <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
         {/* Modal panel */}
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full relative z-10">
-          {/* Header */}
-          <div className="bg-red-600 px-6 py-4">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <svg
-                  className="h-6 w-6 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                  />
-                </svg>
-              </div>
-              <h3 className="ml-3 text-lg font-semibold text-white">
-                Delete {getResourceTypeLabel()}
-              </h3>
-            </div>
+        <div className="relative inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-slate-200">
+          
+          {/* Header - Clean style matching updated UI */}
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white">
+             <div className="flex items-center gap-3">
+                <div className="p-2 bg-red-50 rounded-lg border border-red-100 text-red-600">
+                   <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                   <h3 className="text-lg font-semibold text-slate-900 leading-tight">Delete Resource</h3>
+                   <p className="text-xs text-slate-500 font-medium">This action cannot be undone</p>
+                </div>
+             </div>
+             <button
+               onClick={handleClose}
+               disabled={isDeleting}
+               className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors disabled:opacity-50"
+             >
+               <X className="w-5 h-5" />
+             </button>
           </div>
 
           {/* Content */}
-          <div className="px-6 py-4">
-            <div className="space-y-4">
-              {/* Warning message */}
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-sm text-red-800">
-                  <strong>Warning:</strong> {getWarningMessage()}
-                </p>
-              </div>
-
-              {/* Disclaimer */}
-              <div className="bg-orange-50 border-l-4 border-orange-400 p-4">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-orange-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-orange-700">
-                      <strong>Disclaimer:</strong> This action triggers a real deletion in your AWS account. It cannot be undone and data will be permanently lost.
-                    </p>
-                  </div>
+          <div className="px-6 py-6 space-y-6">
+            
+             {/* Warning Box */}
+             <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                   <p className="text-sm font-semibold text-red-900">Warning</p>
+                   <p className="text-sm text-red-700 leading-relaxed">
+                      {getWarningMessage()}
+                   </p>
                 </div>
-              </div>
+             </div>
 
-              {/* Resource info */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium text-gray-600">Type:</span>
-                    <span className="text-sm text-gray-900">{getResourceTypeLabel()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium text-gray-600">Name:</span>
-                    <span className="text-sm text-gray-900 font-mono">{resourceName}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium text-gray-600">ID:</span>
-                    <span className="text-sm text-gray-900 font-mono">{resourceId}</span>
-                  </div>
+             {/* Disclaimer */}
+             <div className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg">
+                <div className="flex gap-3">
+                   <AlertOctagon className="w-5 h-5 text-amber-500 shrink-0" />
+                   <div>
+                      <p className="text-sm text-amber-900">
+                         <span className="font-semibold">Disclaimer:</span> This action triggers a real deletion in your AWS account. It cannot be undone and data will be permanently lost.
+                      </p>
+                   </div>
                 </div>
-              </div>
+             </div>
 
-              {/* Force option */}
-              {showForceOption && (
-                <div className="flex items-start">
-                  <input
-                    type="checkbox"
-                    id="force-delete"
-                    checked={force}
-                    onChange={(e) => setForce(e.target.checked)}
-                    disabled={isDeleting}
-                    className="mt-1 h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="force-delete" className="ml-3 text-sm text-gray-700">
-                    <span className="font-medium">Force delete</span>
-                    <p className="text-gray-500 mt-1">
-                      {resourceType === 's3' && 'Delete all objects in the bucket before deleting the bucket'}
-                      {resourceType === 'iam-role' && 'Detach all policies and remove from instance profiles'}
-                      {resourceType === 'iam-user' && 'Delete all access keys and remove from all groups'}
-                    </p>
-                  </label>
+             {/* Resource Info Card */}
+             <div className="bg-slate-50 rounded-lg border border-slate-200 p-4 space-y-3">
+                <div className="flex justify-between items-center text-sm">
+                   <span className="text-slate-500 font-medium">Type</span>
+                   <span className="text-slate-900 font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 shadow-sm">{getResourceTypeLabel()}</span>
                 </div>
-              )}
+                <div className="flex justify-between items-center text-sm">
+                   <span className="text-slate-500 font-medium">Name</span>
+                   <span className="text-slate-900 font-mono break-all text-right ml-4">{resourceName}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                   <span className="text-slate-500 font-medium">ID</span>
+                   <span className="text-slate-900 font-mono text-xs bg-slate-200/50 px-1.5 py-0.5 rounded">{resourceId}</span>
+                </div>
+             </div>
 
-              {/* Confirmation input */}
-              <div>
-                <label htmlFor="confirm-text" className="block text-sm font-medium text-gray-700 mb-2">
-                  Type <span className="font-mono font-bold">DELETE</span> to confirm:
+             {/* Force Option */}
+             {showForceOption && (
+                <div className="flex items-start p-3 bg-red-50/50 rounded-lg border border-red-100">
+                   <div className="flex items-center h-5">
+                      <input
+                         type="checkbox"
+                         id="force-delete"
+                         checked={force}
+                         onChange={(e) => setForce(e.target.checked)}
+                         disabled={isDeleting}
+                         className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"
+                      />
+                   </div>
+                   <div className="ml-3 text-sm">
+                      <label htmlFor="force-delete" className="font-medium text-slate-900 select-none cursor-pointer">
+                         Force delete
+                      </label>
+                      <p className="text-slate-500 mt-0.5 leading-tight">
+                        {resourceType === 's3' && 'Delete all objects in the bucket before deleting the bucket'}
+                        {resourceType === 'iam-role' && 'Detach all policies and remove from instance profiles'}
+                        {resourceType === 'iam-user' && 'Delete all access keys and remove from all groups'}
+                      </p>
+                   </div>
+                </div>
+             )}
+
+             {/* Confirmation Input */}
+             <div>
+                <label htmlFor="confirm-text" className="block text-sm font-medium text-slate-700 mb-2">
+                   Type <span className="font-mono font-bold text-red-600 bg-red-50 px-1 rounded border border-red-100">DELETE</span> to confirm:
                 </label>
                 <input
-                  type="text"
-                  id="confirm-text"
-                  value={confirmText}
-                  onChange={(e) => setConfirmText(e.target.value)}
-                  disabled={isDeleting}
-                  placeholder="DELETE"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                   type="text"
+                   id="confirm-text"
+                   value={confirmText}
+                   onChange={(e) => setConfirmText(e.target.value)}
+                   disabled={isDeleting}
+                   placeholder="DELETE"
+                   className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 disabled:bg-slate-50 disabled:text-slate-400 transition-all font-mono shadow-sm"
                 />
-              </div>
-            </div>
+             </div>
           </div>
 
           {/* Footer */}
-          <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3">
-            <button
-              onClick={handleClose}
-              disabled={isDeleting}
-              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleConfirm}
-              disabled={isDeleting || confirmText !== 'DELETE'}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {isDeleting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Deleting...
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                  Delete {getResourceTypeLabel()}
-                </>
-              )}
-            </button>
+          <div className="bg-slate-50 px-6 py-4 flex justify-end gap-3 border-t border-slate-100">
+             <button
+               onClick={handleClose}
+               disabled={isDeleting}
+               className="px-4 py-2 bg-white border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+             >
+               Cancel
+             </button>
+             <button
+               onClick={handleConfirm}
+               disabled={isDeleting || confirmText !== 'DELETE'}
+               className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm shadow-red-200"
+             >
+               {isDeleting ? (
+                 <>
+                   <Loader2 className="w-4 h-4 animate-spin" />
+                   Deleting...
+                 </>
+               ) : (
+                 <>
+                   <Trash2 className="w-4 h-4" />
+                   Delete Resource
+                 </>
+               )}
+             </button>
           </div>
+
         </div>
       </div>
     </div>
