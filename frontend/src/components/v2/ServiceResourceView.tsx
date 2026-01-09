@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Service, ResourceFilters } from '@/lib/api/types';
+import { Service, ResourceFilters, Resource } from '@/lib/api/types';
 import { servicesAPI } from '@/lib/api/v2';
 import DynamicResourceTable from './DynamicResourceTable';
 import { ArrowLeft, Box, CheckCircle2, AlertTriangle, Filter } from 'lucide-react';
@@ -9,8 +9,8 @@ import { ArrowLeft, Box, CheckCircle2, AlertTriangle, Filter } from 'lucide-reac
 interface ServiceResourceViewProps {
   service: Service;
   onBack: () => void;
-  onViewDetails?: (resource: any) => void;
-  onDelete?: (resource: any) => void;
+  onViewDetails?: (resource: Resource) => void;
+  onDelete?: (resource: Resource) => void;
 }
 
 export default function ServiceResourceView({
@@ -19,7 +19,7 @@ export default function ServiceResourceView({
   onViewDetails,
   onDelete,
 }: ServiceResourceViewProps) {
-  const [resources, setResources] = useState<any[]>([]);
+  const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'unused'>('all');

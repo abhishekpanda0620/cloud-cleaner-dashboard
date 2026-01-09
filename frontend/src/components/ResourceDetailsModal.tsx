@@ -1,6 +1,7 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { 
   X, 
   Server, 
@@ -9,21 +10,21 @@ import {
   Lock, 
   Users, 
   Key, 
-  Calendar, 
   Globe, 
   Activity, 
   Tag, 
   Shield, 
   Cpu,
-  Clock,
   Box,
   AlertTriangle
 } from 'lucide-react';
 
+import { ResourceType } from '@/lib/api/types';
+
 interface ResourceDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  resourceType: 'ec2' | 'ebs' | 's3' | 'iam-role' | 'iam-user';
+  resourceType: ResourceType;
   resourceId: string;
   apiUrl: string;
   region?: string;
@@ -41,13 +42,7 @@ export default function ResourceDetailsModal({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isOpen && resourceId) {
-      fetchDetails();
-    }
-  }, [isOpen, resourceId]);
-
-  const fetchDetails = async () => {
+  const fetchDetails = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -71,6 +66,8 @@ export default function ResourceDetailsModal({
           break;
       }
 
+      if (!endpoint) return;
+
       const response = await fetch(endpoint);
       if (!response.ok) {
         throw new Error(`Failed to fetch details: ${response.statusText}`);
@@ -83,7 +80,14 @@ export default function ResourceDetailsModal({
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiUrl, region, resourceId, resourceType]);
+
+  useEffect(() => {
+    if (isOpen && resourceId) {
+      fetchDetails();
+    }
+  }, [isOpen, resourceId, fetchDetails]);
+
 
   if (!isOpen) return null;
 

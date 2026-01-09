@@ -2,7 +2,7 @@
 
 import { useScan } from '@/hooks/useScan';
 import { useState } from 'react';
-import { Search, Loader2, RefreshCw } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
 
 export default function ScanControl({ onScanComplete }: { onScanComplete?: () => void }) {
   const { status, loading, error, triggerScan } = useScan();

@@ -1,28 +1,29 @@
 import { ReactNode } from 'react';
 
-interface Column {
+export interface Column<T> {
   header: string;
-  accessor: string;
-  render?: (value: any, row: any) => ReactNode;
+  accessor: keyof T | string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  render?: (value: any, row: T) => ReactNode;
   align?: 'left' | 'right';
   width?: string;
 }
 
-interface ResourceTableProps {
-  columns: Column[];
-  data: any[];
+interface ResourceTableProps<T> {
+  columns: Column<T>[];
+  data: T[];
   icon: string;
-  onViewDetails?: (row: any) => void;
-  onDelete?: (row: any) => void;
+  onViewDetails?: (row: T) => void;
+  onDelete?: (row: T) => void;
 }
 
-export default function ResourceTable({
+export default function ResourceTable<T>({
   columns,
   data,
   icon,
   onViewDetails,
   onDelete
-}: ResourceTableProps) {
+}: ResourceTableProps<T>) {
   return (
     <div className="space-y-4">
       {data.map((row, rowIndex) => {
@@ -54,10 +55,12 @@ export default function ResourceTable({
                   <div className="flex items-center space-x-2">
                     <div className="flex-1">
                       {column.render ? (
-                        column.render(row[column.accessor], row)
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        column.render((row as any)[column.accessor], row)
                       ) : (
                         <span className="text-sm font-semibold text-slate-900">
-                          {row[column.accessor]}
+                          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                          {(row as any)[column.accessor]}
                         </span>
                       )}
                     </div>

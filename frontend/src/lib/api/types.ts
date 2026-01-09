@@ -25,6 +25,8 @@ export interface ServiceDetails extends Service {
 }
 
 // Resource Types
+export type ResourceType = 'ec2' | 'ebs' | 's3' | 'iam-role' | 'iam-user';
+
 export interface Resource {
   id: number;
   service_id: number;
@@ -35,7 +37,7 @@ export interface Resource {
   is_unused: boolean;
   unused_reason?: string;
   estimated_monthly_cost: number;
-  resource_config: Record<string, any>;
+  resource_config: Record<string, unknown>;
   tags: Record<string, string>;
   first_seen: string;
   last_seen: string;
@@ -152,5 +154,5 @@ export interface RightSizingSummary {
 export interface ApiError {
   message: string;
   code?: string;
-  details?: any;
+  details?: unknown;
 }

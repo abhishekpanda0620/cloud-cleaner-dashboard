@@ -1,28 +1,30 @@
 import LoadingSpinner from './LoadingSpinner';
 import ErrorAlert from './ErrorAlert';
 import EmptyState from './EmptyState';
-import ResourceTable from './ResourceTable';
+import ResourceTable, { Column } from './ResourceTable';
 import ResourceFilters from './ResourceFilters';
 import { useResourceFilters } from '@/hooks/useResourceFilters';
+import { Resource } from '@/lib/api/types';
 
 interface FilterConfig {
   name: string;
   label: string;
   options: { label: string; value: string }[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   filterFn: (item: any, value: string) => boolean;
 }
 
 interface ResourceTabProps {
   loading: boolean;
   error: string | null;
-  data: any[];
-  columns: any[];
+  data: Resource[];
+  columns: Column<Resource>[];
   icon: string;
   emptyTitle: string;
   emptyDescription: string;
   infoNote?: string;
-  onViewDetails?: (row: any) => void;
-  onDelete?: (row: any) => void;
+  onViewDetails?: (row: Resource) => void;
+  onDelete?: (row: Resource) => void;
   searchFields?: string[];
   filterConfigs?: FilterConfig[];
 }

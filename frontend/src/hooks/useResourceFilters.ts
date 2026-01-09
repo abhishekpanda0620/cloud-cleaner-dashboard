@@ -2,24 +2,24 @@
 
 import { useState, useMemo, useCallback } from 'react';
 
-interface FilterConfig {
+interface FilterConfig<T> {
   name: string;
   label: string;
   options: { label: string; value: string }[];
-  filterFn: (item: any, value: string) => boolean;
+  filterFn: (item: T, value: string) => boolean;
 }
 
-interface UseResourceFiltersProps {
-  data: any[];
-  searchFields: string[];
-  filterConfigs?: FilterConfig[];
+interface UseResourceFiltersProps<T> {
+  data: T[];
+  searchFields: (keyof T | string)[];
+  filterConfigs?: FilterConfig<T>[];
 }
 
-export function useResourceFilters({
+export function useResourceFilters<T>({
   data,
   searchFields,
   filterConfigs = [],
-}: UseResourceFiltersProps) {
+}: UseResourceFiltersProps<T>) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterValues, setFilterValues] = useState<Record<string, string>>(
     filterConfigs.reduce((acc, config) => ({ ...acc, [config.name]: 'all' }), {})
@@ -34,7 +34,8 @@ export function useResourceFilters({
       const lowerSearchTerm = searchTerm.toLowerCase();
       result = result.filter((item) =>
         searchFields.some((field) => {
-          const value = item[field];
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const value = (item as any)[field];
           if (value === null || value === undefined) return false;
           return String(value).toLowerCase().includes(lowerSearchTerm);
         })
@@ -63,7 +64,7 @@ export function useResourceFilters({
     setFilterValues(
       filterConfigs.reduce((acc, config) => ({ ...acc, [config.name]: 'all' }), {})
     );
-  }, [filterConfigs]);
+  }, [filterConfigs, setSearchTerm, setFilterValues]);
 
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {

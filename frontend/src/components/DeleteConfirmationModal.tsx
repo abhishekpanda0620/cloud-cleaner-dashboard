@@ -5,17 +5,17 @@ import {
   AlertTriangle, 
   Trash2, 
   X, 
-  ShieldAlert, 
   AlertOctagon,
-  Check,
   Loader2
 } from 'lucide-react';
+
+import { ResourceType } from '@/lib/api/types';
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (force?: boolean) => Promise<void>;
-  resourceType: 'ec2' | 'ebs' | 's3' | 'iam-role' | 'iam-user';
+  resourceType: ResourceType;
   resourceName: string;
   resourceId: string;
   showForceOption?: boolean;
@@ -81,7 +81,7 @@ export default function DeleteConfirmationModal({
       setConfirmText('');
       setForce(false);
       onClose();
-    } catch (error) {
+    } catch {
       // Error handling is done in parent component
     } finally {
       setIsDeleting(false);

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useServices } from '@/hooks/useServices';
 import { useResourceSummary } from '@/hooks/useResourcesV2';
-import { Service } from '@/lib/api/types';
+import { Service, Resource, ResourceType } from '@/lib/api/types';
 import ScanControl from '@/components/v2/ScanControl';
 import ServiceGrid from '@/components/v2/ServiceGrid';
 import ServiceResourceView from '@/components/v2/ServiceResourceView';
@@ -13,18 +13,18 @@ import ResourceDetailsModal from '@/components/ResourceDetailsModal';
 import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
 import ScheduleSettings from '@/components/ScheduleSettings';
 import { useNotifications } from '@/hooks/useNotifications';
-import { Cloud, Package, AlertTriangle, Search, LayoutGrid } from 'lucide-react';
+import { Package, AlertTriangle, Search, LayoutGrid } from 'lucide-react';
 
 export default function DashboardV2() {
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [detailsModal, setDetailsModal] = useState<{
     isOpen: boolean;
-    resourceType: any;
+    resourceType: ResourceType | null;
     resourceId: string;
   }>({ isOpen: false, resourceType: null, resourceId: '' });
   const [deleteModal, setDeleteModal] = useState<{
     isOpen: boolean;
-    resourceType: any;
+    resourceType: ResourceType | null;
     resourceId: string;
     resourceName: string;
     showForceOption: boolean;
@@ -45,17 +45,25 @@ export default function DashboardV2() {
     refetchServices();
   };
 
-  const mapResourceType = (type: string): any => {
+  const mapResourceType = (type: string): ResourceType | null => {
     if (!type) return null;
     if (type === 'AWS::EC2::Instance' || type === 'EC2Instance') return 'ec2';
     if (type === 'AWS::EC2::Volume' || type === 'EBSVolume') return 'ebs';
     if (type === 'AWS::S3::Bucket' || type === 'S3Bucket') return 's3';
     if (type === 'AWS::IAM::Role' || type === 'IAMRole') return 'iam-role';
     if (type === 'AWS::IAM::User' || type === 'IAMUser') return 'iam-user';
-    return type.toLowerCase();
+    
+    // Check if the type matches one of the valid ResourceType values
+    const validTypes: ResourceType[] = ['ec2', 'ebs', 's3', 'iam-role', 'iam-user'];
+    const lowered = type.toLowerCase();
+    if (validTypes.includes(lowered as ResourceType)) {
+      return lowered as ResourceType;
+    }
+    
+    return null;
   };
 
-  const handleViewDetails = (resource: any) => {
+  const handleViewDetails = (resource: Resource) => {
     setDetailsModal({
       isOpen: true,
       resourceType: mapResourceType(resource.resource_type),
@@ -63,11 +71,11 @@ export default function DashboardV2() {
     });
   };
 
-  const handleDelete = (resource: any) => {
+  const handleDelete = (resource: Resource) => {
     setDeleteModal({
       isOpen: true,
-      resourceType: resource.resource_type,
-      resourceId: resource.id,
+      resourceType: mapResourceType(resource.resource_type),
+      resourceId: resource.resource_id,
       resourceName: resource.resource_name || resource.resource_id,
       showForceOption: false,
     });
@@ -125,7 +133,7 @@ export default function DashboardV2() {
         <ResourceDetailsModal
           isOpen={detailsModal.isOpen}
           onClose={() => setDetailsModal({ isOpen: false, resourceType: null, resourceId: '' })}
-          resourceType={detailsModal.resourceType}
+          resourceType={detailsModal.resourceType!}
           resourceId={detailsModal.resourceId}
           apiUrl={apiUrl}
           region="us-east-1"
@@ -145,7 +153,7 @@ export default function DashboardV2() {
             })
           }
           onConfirm={handleConfirmDelete}
-          resourceType={deleteModal.resourceType}
+          resourceType={deleteModal.resourceType!}
           resourceId={deleteModal.resourceId}
           resourceName={deleteModal.resourceName}
           showForceOption={deleteModal.showForceOption}

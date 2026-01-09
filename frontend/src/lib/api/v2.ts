@@ -54,7 +54,7 @@ async function apiFetch<T>(
 /**
  * Build query string from params object
  */
-function buildQueryString(params: Record<string, any>): string {
+function buildQueryString(params: Record<string, unknown>): string {
   const searchParams = new URLSearchParams();
   
   Object.entries(params).forEach(([key, value]) => {
@@ -106,7 +106,7 @@ export const servicesAPI = {
    * List all services
    */
   async list(filters?: ServiceFilters): Promise<Service[]> {
-    const queryString = filters ? buildQueryString(filters) : '';
+    const queryString = filters ? buildQueryString(filters as unknown as Record<string, unknown>) : '';
     const response: { services: Service[] } = await apiFetch(`/v2/services${queryString}`);
     return response.services;
   },
@@ -125,7 +125,7 @@ export const servicesAPI = {
     serviceCode: string,
     filters?: ResourceFilters
   ): Promise<Resource[]> {
-    const queryString = filters ? buildQueryString(filters) : '';
+    const queryString = filters ? buildQueryString(filters as unknown as Record<string, unknown>) : '';
     const response: { resources: Resource[] } = await apiFetch(`/v2/services/${serviceCode}/resources${queryString}`);
     return response.resources;
   },
@@ -183,7 +183,7 @@ export const resourcesAPI = {
    * Get resource summary statistics
    */
   async getSummary(filters?: ResourceFilters): Promise<ResourceSummary> {
-    const queryString = filters ? buildQueryString(filters) : '';
+    const queryString = filters ? buildQueryString(filters as unknown as Record<string, unknown>) : '';
     return apiFetch(`/v2/resources/summary${queryString}`);
   },
 };
@@ -210,7 +210,7 @@ export async function checkHealth(): Promise<boolean> {
 export async function getVersion(): Promise<{
   name: string;
   version: string;
-  api_versions: Record<string, any>;
+  api_versions: Record<string, unknown>;
 }> {
   return apiFetch('/');
 }

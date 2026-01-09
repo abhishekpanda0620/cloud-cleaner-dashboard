@@ -9,17 +9,17 @@ import {
   Server, 
   Lock, 
   Users, 
-  Key,
-  MoreVertical, 
-  MoreHorizontal
+  Key
 } from 'lucide-react';
 
+import { Resource } from '@/lib/api/types';
+
 interface DynamicResourceTableProps {
-  resources: any[];
+  resources: Resource[];
   loading?: boolean;
   error?: string | null;
-  onViewDetails?: (resource: any) => void;
-  onDelete?: (resource: any) => void;
+  onViewDetails?: (resource: Resource) => void;
+  onDelete?: (resource: Resource) => void;
 }
 
 export default function DynamicResourceTable({
