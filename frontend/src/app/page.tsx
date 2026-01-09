@@ -1,175 +1,230 @@
 import Link from "next/link";
+import Image from "next/image";
+import { ArrowRight, Cloud, Shield, DollarSign, BarChart2, CheckCircle2, Zap, Layout, PlayCircle } from "lucide-react";
+import Logo from "@/components/Logo";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        {/* Header */}
-        <div className="text-center mb-16 animate-fade-in">
-          <div className="flex items-center justify-center mb-6">
-            <div className="h-20 w-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-2xl transform hover:scale-110 transition-transform duration-300">
-              <span className="text-5xl">☁️</span>
-            </div>
-          </div>
-          <h1 className="text-6xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-6">
-            Cloud Cleaner
-          </h1>
-          <p className="text-xl text-slate-700 max-w-3xl mx-auto leading-relaxed">
-            Monitor, analyze, and optimize your AWS resources with intelligent cost analysis and automated cleanup
-          </p>
-          <div className="mt-8 flex items-center justify-center gap-4">
-            <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-green-100 text-green-800 shadow-md">
-              <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse mr-2"></span>
-              Production Ready
-            </span>
-            <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-blue-100 text-blue-800 shadow-md">
-              Version 0.4.1
-            </span>
-          </div>
-        </div>
-
-        {/* Dashboard Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
-          {/* Resource Dashboard Card */}
-          <Link href="/dashboard" className="group">
-            <div className="relative overflow-hidden bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl shadow-2xl p-8 hover:shadow-3xl transition-all duration-300 transform hover:-translate-y-2">
-              <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-20 -mt-20"></div>
-              <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full -ml-16 -mb-16"></div>
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="h-20 w-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-xl">
-                    <span className="text-4xl">🖥️</span>
-                  </div>
-                  <div className="text-white group-hover:translate-x-2 transition-transform duration-300">
-                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                </div>
-                <h2 className="text-3xl font-bold text-white mb-4 drop-shadow-lg">
-                  Resource Dashboard
-                </h2>
-                <p className="text-white/90 mb-6 text-lg leading-relaxed">
-                  Monitor and manage your AWS resources including EC2 instances, EBS volumes, S3 buckets, and IAM resources
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <span className="px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-full text-sm font-medium border border-white/30">EC2</span>
-                  <span className="px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-full text-sm font-medium border border-white/30">EBS</span>
-                  <span className="px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-full text-sm font-medium border border-white/30">S3</span>
-                  <span className="px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-full text-sm font-medium border border-white/30">IAM</span>
-                </div>
+    <div className="min-h-screen bg-slate-50 selection:bg-blue-100 selection:text-blue-900 font-inter">
+      {/* Navbar - Glassmorphism */}
+      <nav className="fixed w-full border-b border-white/20 bg-white/70 backdrop-blur-xl z-50 transition-all duration-300">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16 items-center">
+            <div className="flex items-center gap-2 group cursor-pointer">
+              <div className="relative w-8 h-8">
+                <div className="absolute inset-0 bg-blue-500 blur-lg opacity-20 group-hover:opacity-40 transition-opacity rounded-lg"></div>
+                 <Logo className="relative w-8 h-8" />
               </div>
+              <span className="font-bold text-xl text-slate-900 tracking-tight ml-2">Cloud Cleaner</span>
             </div>
-          </Link>
-
-          {/* Cost Analysis Card */}
-          <Link href="/cost-analysis" className="group">
-            <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 rounded-3xl shadow-2xl p-8 hover:shadow-3xl transition-all duration-300 transform hover:-translate-y-2">
-              <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-20 -mt-20"></div>
-              <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full -ml-16 -mb-16"></div>
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="h-20 w-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-xl">
-                    <span className="text-4xl">💰</span>
-                  </div>
-                  <div className="text-white group-hover:translate-x-2 transition-transform duration-300">
-                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                </div>
-                <h2 className="text-3xl font-bold text-white mb-4 drop-shadow-lg">
-                  Cost Analysis
-                </h2>
-                <p className="text-white/90 mb-6 text-lg leading-relaxed">
-                  Track costs, identify savings opportunities, and generate detailed reports with cost breakdowns and trends
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <span className="px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-full text-sm font-medium border border-white/30">Savings</span>
-                  <span className="px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-full text-sm font-medium border border-white/30">Reports</span>
-                  <span className="px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-full text-sm font-medium border border-white/30">Trends</span>
-                  <span className="px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-full text-sm font-medium border border-white/30">Export</span>
-                </div>
-              </div>
-            </div>
-          </Link>
-        </div>
-
-        {/* Features Section */}
-        <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl border border-slate-200/50 p-10">
-          <h2 className="text-3xl font-bold text-slate-900 mb-8 text-center">
-            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Key Features
-            </span>
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="group text-center p-6 rounded-2xl hover:bg-blue-50 transition-all duration-300 transform hover:-translate-y-1">
-              <div className="h-16 w-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <span className="text-3xl">🔍</span>
-              </div>
-              <h3 className="font-bold text-slate-900 mb-3 text-lg">Resource Scanning</h3>
-              <p className="text-slate-600 leading-relaxed">
-                Automatically detect unused and underutilized AWS resources
-              </p>
-            </div>
-            <div className="group text-center p-6 rounded-2xl hover:bg-emerald-50 transition-all duration-300 transform hover:-translate-y-1">
-              <div className="h-16 w-16 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <span className="text-3xl">💸</span>
-              </div>
-              <h3 className="font-bold text-slate-900 mb-3 text-lg">Cost Optimization</h3>
-              <p className="text-slate-600 leading-relaxed">
-                Calculate potential savings and track cost trends over time
-              </p>
-            </div>
-            <div className="group text-center p-6 rounded-2xl hover:bg-purple-50 transition-all duration-300 transform hover:-translate-y-1">
-              <div className="h-16 w-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <span className="text-3xl">📊</span>
-              </div>
-              <h3 className="font-bold text-slate-900 mb-3 text-lg">Detailed Reports</h3>
-              <p className="text-slate-600 leading-relaxed">
-                Export comprehensive reports in PDF and CSV formats
-              </p>
-            </div>
-            <div className="group text-center p-6 rounded-2xl hover:bg-orange-50 transition-all duration-300 transform hover:-translate-y-1">
-              <div className="h-16 w-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <span className="text-3xl">🔔</span>
-              </div>
-              <h3 className="font-bold text-slate-900 mb-3 text-lg">Smart Notifications</h3>
-              <p className="text-slate-600 leading-relaxed">
-                Get alerts via email and Slack for important resource changes
-              </p>
-            </div>
-            <div className="group text-center p-6 rounded-2xl hover:bg-red-50 transition-all duration-300 transform hover:-translate-y-1">
-              <div className="h-16 w-16 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <span className="text-3xl">⏰</span>
-              </div>
-              <h3 className="font-bold text-slate-900 mb-3 text-lg">Scheduled Scans</h3>
-              <p className="text-slate-600 leading-relaxed">
-                Automate resource scanning with customizable schedules
-              </p>
-            </div>
-            <div className="group text-center p-6 rounded-2xl hover:bg-indigo-50 transition-all duration-300 transform hover:-translate-y-1">
-              <div className="h-16 w-16 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <span className="text-3xl">🗑️</span>
-              </div>
-              <h3 className="font-bold text-slate-900 mb-3 text-lg">Safe Cleanup</h3>
-              <p className="text-slate-600 leading-relaxed">
-                Delete unused resources safely with confirmation dialogs
-              </p>
+            <div className="flex items-center gap-4">
+              <Link 
+                href="/dashboard"
+                className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors px-3 py-2 rounded-md hover:bg-slate-50"
+              >
+                Sign In
+              </Link>
+              <Link 
+                href="/dashboard"
+                className="group relative bg-slate-900 text-white px-5 py-2 rounded-full text-sm font-medium shadow-lg hover:shadow-xl hover:bg-slate-800 transition-all flex items-center gap-2 overflow-hidden"
+              >
+                <span className="relative z-10 flex items-center gap-2">
+                  Get Started <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                </span>
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              </Link>
             </div>
           </div>
         </div>
+      </nav>
 
-        {/* Footer */}
-        <div className="text-center mt-16">
-          <div className="inline-flex items-center gap-3 px-6 py-3 bg-white/80 backdrop-blur-md rounded-full shadow-lg border border-slate-200/50">
-            <span className="text-slate-600 text-sm font-medium">Built with</span>
-            <span className="px-3 py-1 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-full text-xs font-semibold">Next.js</span>
-            <span className="px-3 py-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-full text-xs font-semibold">FastAPI</span>
-            <span className="px-3 py-1 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-full text-xs font-semibold">AWS SDK</span>
+      {/* Hero Section */}
+      <div className="relative overflow-hidden pt-32 pb-40">
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-soft-light"></div>
+        
+        {/* Animated Background Gradients */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-blue-200/50 rounded-full blur-[100px] opacity-40 -z-10 animate-pulse-slow"></div>
+        <div className="absolute bottom-0 right-0 w-[600px] h-[400px] bg-purple-200/50 rounded-full blur-[100px] opacity-40 -z-10 delay-1000 animate-pulse-slow"></div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+           <div className="flex flex-col items-center text-center max-w-4xl mx-auto">
+             
+             {/* Headline */}
+             <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-slate-900 mb-6 leading-[1.1]">
+               Automate your cloud <br/>
+               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 animate-gradient-x">
+                 cost intelligence
+               </span>
+             </h1>
+             
+             <p className="text-xl text-slate-600 mb-10 max-w-2xl mx-auto leading-relaxed">
+               Instant visibility into unused resources, cost anomalies, and optimization opportunities. Save up to 30% on your AWS bill in minutes.
+             </p>
+
+             {/* Buttons */}
+             <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+                <Link 
+                  href="/dashboard"
+                  className="w-full sm:w-auto px-8 py-4 bg-slate-900 text-white rounded-2xl font-semibold text-lg hover:bg-slate-800 transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1 flex items-center justify-center gap-2 group ring-4 ring-slate-100 ring-offset-2 ring-offset-transparent"
+                >
+                  <Layout className="w-5 h-5 text-blue-300 group-hover:text-white transition-colors" />
+                  Launch Dashboard
+                </Link>
+                <Link 
+                  href="/cost-analysis"
+                  className="w-full sm:w-auto px-8 py-4 bg-white text-slate-700 border border-slate-200 rounded-2xl font-semibold text-lg hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2"
+                >
+                  <PlayCircle className="w-5 h-5 text-slate-400" />
+                  View Demo
+                </Link>
+             </div>
+
+             {/* Mockup / Visual */}
+             <div className="mt-20 relative w-full max-w-5xl mx-auto perspective-1000">
+                <div className="relative rounded-2xl bg-slate-900/5 p-2 backdrop-blur-sm border border-slate-200/50 shadow-2xl transform rotate-x-12 translate-y-6 hover:translate-y-2 hover:rotate-x-6 transition-all duration-700 ease-out">
+                   <div className="rounded-xl overflow-hidden bg-white shadow-inner border border-slate-100">
+                      {/* Fake generic UI mockup */}
+                       <div className="h-10 bg-slate-50 border-b border-slate-100 flex items-center px-4 gap-2">
+                          <div className="flex gap-1.5">
+                             <div className="w-3 h-3 rounded-full bg-red-400/80"></div>
+                             <div className="w-3 h-3 rounded-full bg-amber-400/80"></div>
+                             <div className="w-3 h-3 rounded-full bg-emerald-400/80"></div>
+                          </div>
+                       </div>
+                       <div className="grid grid-cols-12 gap-0 h-[400px]">
+                          <div className="col-span-2 border-r border-slate-100 bg-slate-50/50 p-4 space-y-3">
+                             <div className="h-8 rounded bg-slate-200/50 w-full animate-pulse"></div>
+                             <div className="h-8 rounded bg-slate-200/50 w-3/4 animate-pulse delay-75"></div>
+                             <div className="h-8 rounded bg-slate-200/50 w-5/6 animate-pulse delay-150"></div>
+                          </div>
+                          <div className="col-span-10 p-6 bg-white">
+                             <div className="flex justify-between items-center mb-6">
+                                <div className="h-8 rounded bg-slate-100 w-1/3"></div>
+                                <div className="flex gap-2">
+                                   <div className="h-8 w-24 rounded bg-blue-50"></div>
+                                   <div className="h-8 w-8 rounded bg-slate-100"></div>
+                                </div>
+                             </div>
+                             <div className="grid grid-cols-3 gap-6 mb-8">
+                                <div className="h-32 rounded-xl bg-blue-50/50 border border-blue-100 shadow-sm"></div>
+                                <div className="h-32 rounded-xl bg-purple-50/50 border border-purple-100 shadow-sm"></div>
+                                <div className="h-32 rounded-xl bg-emerald-50/50 border border-emerald-100 shadow-sm"></div>
+                             </div>
+                             <div className="h-48 rounded-xl bg-slate-50 border border-slate-100"></div>
+                          </div>
+                       </div>
+                   </div>
+                   
+                   {/* Floating Cards */}
+                   <div className="absolute -right-8 -top-8 bg-white p-4 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-100 animate-float">
+                      <div className="flex items-center gap-3">
+                         <div className="p-2 bg-green-100 rounded-lg text-green-600"><DollarSign className="w-5 h-5" /></div>
+                         <div>
+                            <p className="text-xs text-slate-500 font-medium">Monthly Savings</p>
+                            <p className="text-lg font-bold text-slate-900">$1,240.50</p>
+                         </div>
+                      </div>
+                   </div>
+                   
+                   <div className="absolute -left-8 top-20 bg-white p-4 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-100 animate-float-delayed">
+                      <div className="flex items-center gap-3">
+                         <div className="p-2 bg-red-100 rounded-lg text-red-600"><Zap className="w-5 h-5" /></div>
+                         <div>
+                            <p className="text-xs text-slate-500 font-medium">Idle Resources</p>
+                            <p className="text-lg font-bold text-slate-900">12 Found</p>
+                         </div>
+                      </div>
+                   </div>
+                </div>
+             </div>
+           </div>
+        </div>
+      </div>
+
+      {/* Bento Grid Features */}
+      <div className="py-24 bg-white relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+             <h2 className="text-3xl font-bold text-slate-900 mb-4">Everything you need to optimize</h2>
+             <p className="text-lg text-slate-500">
+               Powerful features wrapped in a beautiful, intuitive interface. Designed for engineering teams who care about craftsmanship.
+             </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[250px]">
+             
+             {/* Large Card 1 */}
+             <div className="md:col-span-2 row-span-1 bg-slate-50 rounded-2xl border border-slate-200 p-8 flex flex-col justify-between hover:border-blue-200 hover:shadow-lg transition-all group overflow-hidden relative">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-100/50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 opacity-0 group-hover:opacity-50 transition-opacity"></div>
+                <div className="relative z-10">
+                   <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mb-4 shadow-lg shadow-blue-200">
+                      <Shield className="w-5 h-5 text-white" />
+                   </div>
+                   <h3 className="text-xl font-bold text-slate-900 mb-2">Secure Read-Only Access</h3>
+                   <p className="text-slate-600 max-w-md">Our agent uses a confined IAM role with `ReadOnlyAccess`. We scan your infrastructure without creating risks or modifying resources without explicit approval.</p>
+                </div>
+             </div>
+
+             {/* Tall Card */}
+             <div className="md:col-span-1 row-span-2 bg-slate-900 rounded-2xl border border-slate-800 p-8 flex flex-col justify-between relative overflow-hidden group text-white">
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900"></div>
+                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 mix-blend-overlay"></div>
+                <div className="relative z-10 h-full flex flex-col">
+                   <div className="w-10 h-10 bg-slate-700/50 backdrop-blur-md border border-slate-600 rounded-lg flex items-center justify-center mb-4">
+                      <BarChart2 className="w-5 h-5 text-blue-400" />
+                   </div>
+                   <h3 className="text-xl font-bold mb-2">Real-time Analytics</h3>
+                   <p className="text-slate-400 text-sm mb-6">Live dashboards showing usage trends, cost spikes, and efficient resource allocation.</p>
+                   
+                   <div className="mt-auto bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+                      <div className="flex justify-between items-end gap-2 h-24">
+                         <div className="w-1/4 bg-blue-500/30 rounded-t h-[40%]"></div>
+                         <div className="w-1/4 bg-blue-500/50 rounded-t h-[60%]"></div>
+                         <div className="w-1/4 bg-blue-500/70 rounded-t h-[30%]"></div>
+                         <div className="w-1/4 bg-blue-500 rounded-t h-[80%]"></div>
+                      </div>
+                   </div>
+                </div>
+             </div>
+
+             {/* Small Card */}
+             <div className="md:col-span-1 row-span-1 bg-white rounded-2xl border border-slate-200 p-8 hover:border-emerald-200 hover:shadow-lg transition-all group overflow-hidden">
+                <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center mb-4 text-emerald-600">
+                   <DollarSign className="w-5 h-5" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">Cost Intelligence</h3>
+                <p className="text-sm text-slate-600">Identify unattached EBS volumes and idle EC2 instances instantly.</p>
+             </div>
+
+             {/* Small Card */}
+             <div className="md:col-span-1 row-span-1 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100 p-8 hover:shadow-lg transition-all">
+                <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center mb-4 text-indigo-600">
+                   <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">One-Click Cleanup</h3>
+                <p className="text-sm text-slate-600">Generated remediation scripts and direct deletion from the UI.</p>
+             </div>
+
           </div>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="bg-slate-50 border-t border-slate-200 py-12">
+         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-2">
+               <Cloud className="w-5 h-5 text-slate-400" />
+               <p className="text-slate-500 text-sm font-medium">
+                 © {new Date().getFullYear()} Cloud Cleaner.
+               </p>
+            </div>
+            <div className="flex gap-8 text-sm">
+               <a href="#" className="text-slate-500 hover:text-slate-900 transition-colors">Github</a>
+               <a href="#" className="text-slate-500 hover:text-slate-900 transition-colors">Documentation</a>
+               <a href="#" className="text-slate-500 hover:text-slate-900 transition-colors">Twitter</a>
+            </div>
+         </div>
+      </footer>
     </div>
   );
 }
