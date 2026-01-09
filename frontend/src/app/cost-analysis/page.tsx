@@ -3,6 +3,9 @@ import { useEffect, useState } from "react";
 import StatCard from "@/components/StatCard";
 import NotificationCenter from "@/components/NotificationCenter";
 import { useNotifications } from "@/hooks/useNotifications";
+import RightSizingRecommendations from "@/components/RightSizingRecommendations";
+import SavingsTracker from "@/components/SavingsTracker";
+import BudgetStatus from "@/components/BudgetStatus";
 
 interface CostEstimate {
   resourceType: string;
@@ -236,6 +239,11 @@ export default function CostAnalysis() {
           />
         </div>
 
+        {/* Right-Sizing Recommendations */}
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <RightSizingRecommendations />
+        </div>
+
         {/* Cost Breakdown */}
         <div className="bg-white rounded-2xl shadow-xl border border-slate-200/50 p-8 hover:shadow-2xl transition-shadow duration-300">
           <div className="flex items-center justify-between mb-6">
@@ -325,6 +333,11 @@ export default function CostAnalysis() {
           )}
         </div>
 
+        {/* Budget Status */}
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+          <BudgetStatus />
+        </div>
+
         {/* Cost Trends */}
         {data.trends.length > 0 && (
           <div className="bg-white rounded-2xl shadow-xl border border-slate-200/50 p-8 hover:shadow-2xl transition-shadow duration-300">
@@ -397,6 +410,17 @@ export default function CostAnalysis() {
               <p className="text-white/70 text-sm mt-2">per year</p>
             </div>
           </div>
+        </div>
+
+        {/* Realized Savings History */}
+        <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
+           <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3 mb-6">
+            <span className="h-10 w-10 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-lg flex items-center justify-center text-white">
+              🏦
+            </span>
+            Realized Savings Tracker
+          </h2>
+          <SavingsTracker />
         </div>
       </main>
     </div>

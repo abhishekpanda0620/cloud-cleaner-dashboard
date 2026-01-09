@@ -7,6 +7,7 @@ import boto3
 from botocore.exceptions import ClientError
 from core.aws_client import get_aws_client_factory
 from core.cache import get_cache
+from models.service import AWSService
 
 router = APIRouter()
 
@@ -253,34 +254,57 @@ async def get_cost_analysis(region: str = 'us-east-1'):
                 'state': 'available'
             })
         
-        # Get S3 buckets (simplified - just count)
-        try:
-            s3_response = s3_client.list_buckets()
-            s3_buckets = [{'name': bucket['Name'], 'size_gb': 10} for bucket in s3_response.get('Buckets', [])]
-        except:
-            s3_buckets = []
+        # Get S3 and IAM data from Database (Source of Truth for "Unused")
+        # Direct API calls are too simplistic for these complex services
+        from models import AsyncSessionLocal, Resource
+        from sqlalchemy import select, and_
         
-        # Get IAM roles (simplified)
-        try:
-            iam_paginator = iam_client.get_paginator('list_roles')
-            iam_roles = []
-            for page in iam_paginator.paginate():
-                iam_roles.extend(page.get('Roles', []))
-        except:
-            iam_roles = []
-        
-        # Get IAM users (simplified)
-        try:
-            user_paginator = iam_client.get_paginator('list_users')
-            iam_users = []
-            for page in user_paginator.paginate():
-                iam_users.extend(page.get('Users', []))
-        except:
-            iam_users = []
-        
-        # Access keys count (simplified)
+        s3_buckets = []
+        iam_roles = []
+        iam_users = []
         access_keys = []
         
+        async with AsyncSessionLocal() as db:
+            # S3
+            result = await db.execute(
+                select(Resource).where(
+                    and_(
+                        Resource.service_id.in_(
+                            select(AWSService.id).where(AWSService.service_code == 'AmazonS3')
+                        ),
+                        Resource.is_unused == True
+                    )
+                )
+            )
+            s3_resources = result.scalars().all()
+            for r in s3_resources:
+                s3_buckets.append({
+                    'name': r.resource_name,
+                    'size_gb': r.resource_config.get('size_gb', 0)
+                })
+
+            # IAM Roles
+            result = await db.execute(
+                select(Resource).where(
+                    and_(
+                        Resource.resource_type == 'IAMRole',
+                        Resource.is_unused == True
+                    )
+                )
+            )
+            iam_roles = [{'RoleName': r.resource_name} for r in result.scalars().all()]
+            
+            # IAM Users
+            result = await db.execute(
+                select(Resource).where(
+                    and_(
+                        Resource.resource_type == 'IAMUser',
+                        Resource.is_unused == True
+                    )
+                )
+            )
+            iam_users = [{'UserName': r.resource_name} for r in result.scalars().all()]
+
         ec2_data = {'unused_instances': ec2_instances}
         ebs_data = {'unused_volumes': ebs_volumes}
         s3_data = {'unused_buckets': s3_buckets}
