@@ -56,3 +56,4 @@ redis==5.2.1
 flower==2.0.1
 websockets==15.0.1
 celery-redbeat==2.2.0
+reportlab==4.2.5
