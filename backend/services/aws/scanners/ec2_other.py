@@ -13,12 +13,15 @@ class EC2OtherScanner(ScannerBase):
     2. Elastic IPs (Unattached)
     """
     
+    @property
     def service_name(self) -> str:
         return "EC2 - Other"
-        
+    
+    @property
     def service_code(self) -> str:
         return "EC2Other"
-        
+    
+    @property
     def service_category(self) -> str:
         return "Infrastructure"
 
