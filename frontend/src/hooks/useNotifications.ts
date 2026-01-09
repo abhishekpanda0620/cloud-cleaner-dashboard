@@ -4,6 +4,10 @@ import { Notification } from '@/components/NotificationCenter';
 export function useNotifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
+  const dismissNotification = useCallback((id: string) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  }, []);
+
   const addNotification = useCallback((
     notification: Omit<Notification, 'id'>
   ) => {
@@ -24,11 +28,7 @@ export function useNotifications() {
     }
 
     return id;
-  }, []);
-
-  const dismissNotification = useCallback((id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-  }, []);
+  }, [dismissNotification]);
 
   const dismissAll = useCallback(() => {
     setNotifications([]);

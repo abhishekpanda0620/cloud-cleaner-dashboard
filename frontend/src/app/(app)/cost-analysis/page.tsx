@@ -13,12 +13,10 @@ import {
   Table, 
   DollarSign, 
   TrendingUp, 
-  Percent, 
+   
   Package, 
   PieChart,
-  Target,
   LineChart,
-  Calculator,
   HardDrive,
   Database,
   Key,
@@ -26,9 +24,8 @@ import {
   Lock,
   Server,
   Trash2,
-  Calendar,
   CheckCircle2
-} from "lucide-react";
+} from 'lucide-react';
 
 interface CostEstimate {
   resourceType: string;
@@ -71,7 +68,6 @@ export default function CostAnalysis() {
   const [savingsSummary, setSavingsSummary] = useState<SavingsSummary | null>(null);
   
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8084/api";
@@ -81,7 +77,6 @@ export default function CostAnalysis() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        setError(null);
         
         const [costRes, savingsRes] = await Promise.all([
           fetch(`${apiUrl}/cost-analysis`),
@@ -102,7 +97,6 @@ export default function CostAnalysis() {
 
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : "Failed to fetch data";
-        setError(errorMsg);
         setIsConnected(false);
         addNotification({
           type: 'error',
@@ -144,7 +138,7 @@ export default function CostAnalysis() {
           duration: 4000
         });
       }
-    } catch (error) {
+    } catch {
       addNotification({ type: 'error', title: 'Export Failed', message: 'Failed', duration: 3000 });
     }
   };
@@ -167,9 +161,6 @@ export default function CostAnalysis() {
     } catch(e) { console.error(e); }
   };
 
-  const savingsPercentage = data.totalCurrentCost > 0 
-    ? ((data.totalPotentialSavings / data.totalCurrentCost) * 100).toFixed(1)
-    : '0';
 
   const getResourceIcon = (type: string) => {
     switch(type) {

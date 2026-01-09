@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { RightSizingSummary } from '@/lib/api/types';
-import { TrendingDown, AlertTriangle, ArrowRight, Gauge, Check } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Gauge } from 'lucide-react';
 
 export default function RightSizingRecommendations() {
   const [data, setData] = useState<RightSizingSummary | null>(null);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 interface Region {
   code: string;
@@ -20,11 +20,7 @@ export default function RegionSelector({ selectedRegion, onRegionChange, apiUrl 
   const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
 
-  useEffect(() => {
-    fetchRegions();
-  }, [apiUrl]);
-
-  const fetchRegions = async () => {
+  const fetchRegions = useCallback(async () => {
     try {
       const response = await fetch(`${apiUrl}/regions`);
       if (response.ok) {
@@ -37,7 +33,11 @@ export default function RegionSelector({ selectedRegion, onRegionChange, apiUrl 
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiUrl]);
+
+  useEffect(() => {
+    fetchRegions();
+  }, [fetchRegions]);
 
   const handleRegionSelect = (regionCode: string) => {
     onRegionChange(regionCode);

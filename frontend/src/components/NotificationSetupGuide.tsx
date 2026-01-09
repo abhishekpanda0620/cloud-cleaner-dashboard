@@ -59,7 +59,7 @@ export default function NotificationSetupGuide({ isOpen, onClose }: Notification
             <div className="space-y-6">
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="text-sm text-blue-900">
-                  💡 <strong>Tip:</strong> You'll need a Slack workspace and admin access to create a webhook.
+                  💡 <strong>Tip:</strong> You&apos;ll need a Slack workspace and admin access to create a webhook.
                 </p>
               </div>
 
@@ -68,15 +68,15 @@ export default function NotificationSetupGuide({ isOpen, onClose }: Notification
                 <ol className="space-y-3 ml-4">
                   <li className="flex gap-3">
                     <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">1</span>
-                    <span className="text-slate-700">Go to <a href="https://api.slack.com/apps" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Slack Apps</a> and click <strong>"Create New App"</strong></span>
+                    <span className="text-slate-700">Go to <a href="https://api.slack.com/apps" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Slack Apps</a> and click <strong>&quot;Create New App&quot;</strong></span>
                   </li>
                   <li className="flex gap-3">
                     <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">2</span>
-                    <span className="text-slate-700">Select <strong>"From scratch"</strong></span>
+                    <span className="text-slate-700">Select <strong>&quot;From scratch&quot;</strong></span>
                   </li>
                   <li className="flex gap-3">
                     <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">3</span>
-                    <span className="text-slate-700">Name your app (e.g., <strong>"Cloud Cleaner"</strong>) and select your workspace</span>
+                    <span className="text-slate-700">Name your app (e.g., <strong>&quot;Cloud Cleaner&quot;</strong>) and select your workspace</span>
                   </li>
                 </ol>
               </div>
@@ -86,15 +86,15 @@ export default function NotificationSetupGuide({ isOpen, onClose }: Notification
                 <ol className="space-y-3 ml-4">
                   <li className="flex gap-3">
                     <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">1</span>
-                    <span className="text-slate-700">In the left menu, click <strong>"Incoming Webhooks"</strong></span>
+                    <span className="text-slate-700">In the left menu, click <strong>&quot;Incoming Webhooks&quot;</strong></span>
                   </li>
                   <li className="flex gap-3">
                     <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">2</span>
-                    <span className="text-slate-700">Toggle <strong>"Activate Incoming Webhooks"</strong> to ON</span>
+                    <span className="text-slate-700">Toggle <strong>&quot;Activate Incoming Webhooks&quot;</strong> to ON</span>
                   </li>
                   <li className="flex gap-3">
                     <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">3</span>
-                    <span className="text-slate-700">Click <strong>"Add New Webhook to Workspace"</strong></span>
+                    <span className="text-slate-700">Click <strong>&quot;Add New Webhook to Workspace&quot;</strong></span>
                   </li>
                   <li className="flex gap-3">
                     <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">4</span>
@@ -106,7 +106,7 @@ export default function NotificationSetupGuide({ isOpen, onClose }: Notification
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-slate-900">Step 3: Copy Your Webhook URL</h3>
                 <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-                  <p className="text-sm text-slate-700 mb-2">You'll see a URL like this:</p>
+                  <p className="text-sm text-slate-700 mb-2">You{`&apos;`}ll see a URL like this:</p>
                   <code className="text-xs bg-slate-900 text-green-400 p-3 rounded block overflow-x-auto">
                     https://hooks.slack.com/services/YOUR/WEBHOOK/URL
                   </code>
@@ -130,7 +130,7 @@ export default function NotificationSetupGuide({ isOpen, onClose }: Notification
 
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                 <p className="text-sm text-yellow-900">
-                  ⚠️ <strong>Important:</strong> Keep your webhook URL secret! Don't share it or commit it to version control.
+                  ⚠️ <strong>Important:</strong> Keep your webhook URL secret! Don{`&apos;`}t share it or commit it to version control.
                 </p>
               </div>
             </div>

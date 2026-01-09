@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { ArrowRight, Cloud, Shield, DollarSign, BarChart2, CheckCircle2, Zap, Layout, PlayCircle } from "lucide-react";
 import Logo from "@/components/Logo";
 

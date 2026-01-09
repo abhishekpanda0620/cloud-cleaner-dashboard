@@ -1,9 +1,8 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, PieChart, Settings, Cloud } from 'lucide-react';
+import { LayoutDashboard, PieChart, Settings } from 'lucide-react';
 import Logo from '@/components/Logo';
 
 export default function Sidebar() {

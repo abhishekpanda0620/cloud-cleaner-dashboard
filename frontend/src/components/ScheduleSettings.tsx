@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Clock, Bell, Mail, MessageSquare, Play, RefreshCw, Calendar, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Clock, Bell, Mail, MessageSquare, RefreshCw, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 interface ScheduleConfig {
   enabled: boolean;
@@ -28,18 +28,12 @@ export default function ScheduleSettings() {
   const [status, setStatus] = useState<ScheduleStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [triggering, setTriggering] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8084/api';
 
-  useEffect(() => {
-    fetchConfig();
-    fetchStatus();
-  }, []);
-
-  const fetchConfig = async () => {
+  const fetchConfig = useCallback(async () => {
     try {
       const response = await fetch(`${API_URL}/schedule/config`);
       if (!response.ok) throw new Error('Failed to fetch schedule config');
@@ -50,9 +44,9 @@ export default function ScheduleSettings() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_URL]);
 
-  const fetchStatus = async () => {
+  const fetchStatus = useCallback(async () => {
     try {
       const response = await fetch(`${API_URL}/schedule/status`);
       if (!response.ok) throw new Error('Failed to fetch schedule status');
@@ -61,7 +55,12 @@ export default function ScheduleSettings() {
     } catch (err) {
       console.error('Failed to fetch status:', err);
     }
-  };
+  }, [API_URL]);
+
+  useEffect(() => {
+    fetchConfig();
+    fetchStatus();
+  }, [fetchConfig, fetchStatus]);
 
   const handleSave = async () => {
     setSaving(true);

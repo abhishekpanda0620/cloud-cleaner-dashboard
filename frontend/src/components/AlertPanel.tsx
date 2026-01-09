@@ -57,7 +57,7 @@ export default function AlertPanel({ s3Count, iamUsersCount, onAlertSent }: Aler
       }
       
       // Show success message with background processing info
-      let successMessage = `✓ Alert queued! ${result.message || 'Processing in background...'}`;
+      const successMessage = `✓ Alert queued! ${result.message || 'Processing in background...'}`;
       setMessage(successMessage);
       setMessageType('success');
       onAlertSent?.();
