@@ -229,13 +229,13 @@ export default function DashboardV2() {
             </div>
 
             {/* Controls Row (Full Width - 2 columns) */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid gap-6">
                 {/* Scan Control (1/3) */}
-                <div className="lg:col-span-1">
+                <div className="">
                     <ScanControl onScanComplete={handleScanComplete} />
                 </div>
                 {/* Schedule Settings (2/3) - WIDER as requested */}
-                <div className="lg:col-span-2">
+                <div className="">
                     <ScheduleSettings />
                 </div>
             </div>
