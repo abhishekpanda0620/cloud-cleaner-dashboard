@@ -19,13 +19,13 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-4">
               <Link 
-                href="/dashboard"
+                href="/signin"
                 className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors px-3 py-2 rounded-md hover:bg-slate-50"
               >
                 Sign In
               </Link>
               <Link 
-                href="/dashboard"
+                href="/signin"
                 className="group relative bg-slate-900 text-white px-5 py-2 rounded-full text-sm font-medium shadow-lg hover:shadow-xl hover:bg-slate-800 transition-all flex items-center gap-2 overflow-hidden"
               >
                 <span className="relative z-10 flex items-center gap-2">
