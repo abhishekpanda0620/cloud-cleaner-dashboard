@@ -13,6 +13,7 @@ import ResourceDetailsModal from '@/components/ResourceDetailsModal';
 import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
 import ScheduleSettings from '@/components/ScheduleSettings';
 import { useNotifications } from '@/hooks/useNotifications';
+import { Cloud, Package, AlertTriangle, Search, LayoutGrid } from 'lucide-react';
 
 export default function DashboardV2() {
   const [selectedService, setSelectedService] = useState<Service | null>(null);
@@ -118,7 +119,7 @@ export default function DashboardV2() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="min-h-full">
       {/* Modals */}
       {detailsModal.isOpen && (
         <ResourceDetailsModal
@@ -155,33 +156,31 @@ export default function DashboardV2() {
       <NotificationCenter notifications={notifications} onDismiss={dismissNotification} />
 
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-slate-200/50 shadow-lg sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="h-12 w-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                <span className="text-2xl">☁️</span>
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-10 px-6 py-4">
+        <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="bg-slate-100 p-2 rounded-lg border border-slate-200">
+                <LayoutGrid className="w-5 h-5 text-slate-900" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                  Cloud Cleaner Dashboard
+                <h1 className="text-xl font-semibold text-slate-900 leading-tight">
+                  Resource Dashboard
                 </h1>
-                <p className="mt-1 text-sm text-slate-600">
-                  Dynamic AWS Resource Discovery v0.5.0
+                <p className="text-sm text-slate-500">
+                  Dynamic AWS Discovery
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <span className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
-                v0.5.0
+              <span className="px-2 py-1 text-xs font-medium bg-slate-100 text-slate-600 rounded border border-slate-200">
+                us-east-1
               </span>
             </div>
           </div>
-        </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <main className="px-6 py-8 space-y-8">
         {selectedService ? (
           /* Service Detail View */
           <ServiceResourceView
@@ -193,59 +192,63 @@ export default function DashboardV2() {
         ) : (
           /* Services Overview */
           <>
-            {/* Scan Control */}
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <ScanControl onScanComplete={handleScanComplete} />
-            </div>
-
-            {/* Overall Statistics */}
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+             {/* Stats Row (Full Width) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <StatCard
-                  title="Total Resources"
-                  value={summary?.total_resources || 0}
-                  icon="📦"
-                  bgColor="bg-gradient-to-br from-blue-500 to-blue-600"
-                  loading={summaryLoading}
+                    title="Total Resources"
+                    value={summary?.total_resources || 0}
+                    icon={<Package className="w-5 h-5" />}
+                    loading={summaryLoading}
+                    iconClassName="text-blue-500"
+                    iconBgClassName="bg-blue-50"
                 />
                 <StatCard
-                  title="Unused Resources"
-                  value={summary?.unused_resources || 0}
-                  icon="⚠️"
-                  bgColor="bg-gradient-to-br from-red-500 to-red-600"
-                  loading={summaryLoading}
+                    title="Unused Resources"
+                    value={summary?.unused_resources || 0}
+                    icon={<AlertTriangle className="w-5 h-5" />}
+                    loading={summaryLoading}
+                    iconClassName="text-amber-500"
+                    iconBgClassName="bg-amber-50"
                 />
                 <StatCard
-                  title="Services Discovered"
-                  value={services.length}
-                  icon="🔍"
-                  bgColor="bg-gradient-to-br from-purple-500 to-purple-600"
-                  loading={servicesLoading}
+                    title="Services"
+                    value={services.length}
+                    icon={<Search className="w-5 h-5" />}
+                    loading={servicesLoading}
+                    iconClassName="text-purple-500"
+                    iconBgClassName="bg-purple-50"
                 />
-              </div>
             </div>
 
-            {/* Schedule Settings */}
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-600">
-              <ScheduleSettings />
+            {/* Controls Row (Full Width - 2 columns) */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Scan Control (1/3) */}
+                <div className="lg:col-span-1">
+                    <ScanControl onScanComplete={handleScanComplete} />
+                </div>
+                {/* Schedule Settings (2/3) - WIDER as requested */}
+                <div className="lg:col-span-2">
+                    <ScheduleSettings />
+                </div>
             </div>
 
-            {/* Services Grid */}
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold text-slate-900 mb-2">Discovered Services</h2>
-                <p className="text-sm text-slate-600">
-                  Click on a service to view its resources and identify unused ones
-                </p>
-              </div>
-              <ServiceGrid
-                services={services}
-                loading={servicesLoading}
-                error={servicesError}
-                onServiceClick={handleServiceClick}
-              />
+            {/* Services Grid (Full Width) */}
+            <div className="space-y-4">
+                 <div className="flex items-center justify-between">
+                    <div>
+                         <h2 className="text-lg font-semibold text-slate-900">Discovered Services</h2>
+                         <p className="text-sm text-slate-500">
+                           Services with identified resources in your AWS environment.
+                         </p>
+                    </div>
+                 </div>
+                 <ServiceGrid
+                    services={services}
+                    loading={servicesLoading}
+                    error={servicesError}
+                    onServiceClick={handleServiceClick}
+                  />
             </div>
-
           </>
         )}
       </main>
