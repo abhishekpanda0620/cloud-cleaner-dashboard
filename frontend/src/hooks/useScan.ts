@@ -11,7 +11,7 @@ interface UseScanResult {
   history: ScanHistory[];
   loading: boolean;
   error: string | null;
-  triggerScan: () => Promise<void>;
+  triggerScan: (regions?: string[], force?: boolean) => Promise<void>;
   refreshStatus: () => Promise<void>;
 }
 
@@ -86,10 +86,10 @@ export function useScan(autoRefresh: boolean = true): UseScanResult {
   }, [autoRefresh, status?.is_scanning, fetchStatus]);
 
   // Trigger new scan
-  const triggerScan = useCallback(async () => {
+  const triggerScan = useCallback(async (regions?: string[], force: boolean = false) => {
     try {
       setError(null);
-      await scanAPI.trigger();
+      await scanAPI.trigger(regions, force);
       // Immediately fetch new status
       await fetchStatus();
       await fetchHistory();

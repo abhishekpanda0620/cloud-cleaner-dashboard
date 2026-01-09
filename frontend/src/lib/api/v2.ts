@@ -75,9 +75,11 @@ export const scanAPI = {
   /**
    * Trigger a new resource scan
    */
-  async trigger(): Promise<{ message: string; scan_id: number }> {
+  async trigger(regions?: string[], force: boolean = false): Promise<{ message: string; scan_id: number }> {
     return apiFetch('/v2/scan', {
       method: 'POST',
+      body: JSON.stringify({ regions, force }),
+      cache: 'no-store' // Ensure we don't hit browser cache for scan trigger
     });
   },
 
