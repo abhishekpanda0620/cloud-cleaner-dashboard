@@ -53,7 +53,9 @@ class AWSServiceDiscoveryEngine:
     async def discover_all(
         self,
         db: AsyncSession,
-        lookback_days: int = None
+        lookback_days: int = None,
+        regions: List[str] = None,
+        force: bool = False
     ) -> Dict[str, Any]:
         """
         Complete discovery workflow:
@@ -65,6 +67,8 @@ class AWSServiceDiscoveryEngine:
         Args:
             db: Database session
             lookback_days: Days to look back for costs (default from settings)
+            regions: List of regions to scan (default: all/settings)
+            force: If True, scan all supported services regardless of cost
             
         Returns:
             Summary of discovery results
@@ -105,8 +109,22 @@ class AWSServiceDiscoveryEngine:
                 for s in services_with_costs:
                     service_map[s['service_code']] = s
             
+            # If force is enabled, include ALL supported scanners
+            if force:
+                logger.info("Force scan enabled: Including all supported services")
+                scanners = self.scanner_registry.list_scanners()
+                for scanner_info in scanners:
+                    code = scanner_info['service_code']
+                    if code not in service_map:
+                        service_map[code] = {
+                            'service_code': code,
+                            'service_name': scanner_info['service_name'],
+                            'cost': 0.0,
+                            'period_days': lookback_days
+                        }
+
             services_with_costs = list(service_map.values())
-            logger.info(f"Proceeding with {len(services_with_costs)} services (including core services)")
+            logger.info(f"Proceeding with {len(services_with_costs)} services (force={force})")
             
             # Step 2: Store/update services in database
             services_count = await self._store_services(db, services_with_costs)
@@ -116,8 +134,8 @@ class AWSServiceDiscoveryEngine:
             await db.commit()
             
             # Step 3: Discover resources for each service using scanners
-            logger.info(f"Discovering resources for {services_count} services using scanners")
-            resources_count = await self._discover_resources_with_scanners(db, services_with_costs)
+            logger.info(f"Discovering resources for {services_count} services using scanners in regions: {regions}")
+            resources_count = await self._discover_resources_with_scanners(db, services_with_costs, regions=regions)
             
             # Step 4: Calculate unused resources
             unused_count = await self._identify_unused_resources(db)
@@ -211,7 +229,8 @@ class AWSServiceDiscoveryEngine:
     async def _discover_resources_with_scanners(
         self,
         db: AsyncSession,
-        services_with_costs: List[Dict[str, Any]]
+        services_with_costs: List[Dict[str, Any]],
+        regions: List[str] = None
     ) -> int:
         """
         Discover resources using scanner plugins.
@@ -224,6 +243,7 @@ class AWSServiceDiscoveryEngine:
         Args:
             db: Database session
             services_with_costs: List of services from Cost Explorer
+            regions: List of regions to scan
             
         Returns:
             Number of resources discovered
@@ -255,7 +275,7 @@ class AWSServiceDiscoveryEngine:
                 logger.info(f"Scanning {service_code} using {scanner.__class__.__name__}")
                 
                 # Run scanner
-                discovered_resources = scanner.scan()
+                discovered_resources = scanner.scan(regions=regions)
                 
                 # Store resources and collect IDs
                 service_resources = 0
