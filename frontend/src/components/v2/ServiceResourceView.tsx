@@ -1,11 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Service, ResourceFilters } from '@/lib/api/types';
 import { servicesAPI } from '@/lib/api/v2';
 import DynamicResourceTable from './DynamicResourceTable';
-import LoadingSpinner from '../LoadingSpinner';
-import { useEffect } from 'react';
+import { ArrowLeft, Box, CheckCircle2, AlertTriangle, Filter } from 'lucide-react';
 
 interface ServiceResourceViewProps {
   service: Service;
@@ -54,93 +53,89 @@ export default function ServiceResourceView({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-        <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col gap-4">
           <button
             onClick={onBack}
-            className="flex items-center space-x-2 text-slate-600 hover:text-slate-900 transition-colors"
+            className="flex items-center space-x-2 text-sm text-slate-500 hover:text-slate-900 transition-colors w-fit group"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            <span className="font-medium">Back to Services</span>
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            <span>Back to Services</span>
           </button>
-        </div>
 
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900">{service.service_name}</h2>
-            <p className="text-sm text-slate-500 mt-1">{service.service_code}</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+                <div className="p-3 bg-white border border-slate-200 rounded-lg shadow-sm">
+                    <Box className="w-6 h-6 text-slate-700" />
+                </div>
+                <div>
+                   <h2 className="text-2xl font-bold text-slate-900 tracking-tight">{service.service_name}</h2>
+                   <div className="flex items-center gap-2 mt-1">
+                      <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 font-mono">
+                         {service.service_code}
+                      </code>
+                      {service.service_category && (
+                        <span className="text-xs text-slate-500">• {service.service_category}</span>
+                      )}
+                   </div>
+                </div>
+            </div>
+            
+             <div className="flex gap-3">
+                 <div className="bg-white border border-slate-200 rounded-lg px-4 py-2 flex items-center gap-3 shadow-sm">
+                     <div className="flex flex-col">
+                        <span className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Active</span>
+                        <span className="text-lg font-bold text-slate-900 leading-none">{activeCount}</span>
+                     </div>
+                     <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                 </div>
+                 <div className="bg-white border border-slate-200 rounded-lg px-4 py-2 flex items-center gap-3 shadow-sm">
+                     <div className="flex flex-col">
+                        <span className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Unused</span>
+                        <span className="text-lg font-bold text-slate-900 leading-none">{unusedCount}</span>
+                     </div>
+                     <AlertTriangle className="w-5 h-5 text-amber-500" />
+                 </div>
+             </div>
           </div>
-          {service.service_category && (
-            <span className="px-3 py-1 text-sm font-medium bg-slate-100 text-slate-700 rounded-lg">
-              {service.service_category}
-            </span>
-          )}
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mt-6">
-          <div className="bg-slate-50 rounded-lg p-4">
-            <p className="text-xs text-slate-600 mb-1">Total Resources</p>
-            <p className="text-2xl font-bold text-slate-900">{resources.length}</p>
-          </div>
-          <div className="bg-green-50 rounded-lg p-4">
-            <p className="text-xs text-green-600 mb-1">Active</p>
-            <p className="text-2xl font-bold text-green-700">{activeCount}</p>
-          </div>
-          <div className="bg-red-50 rounded-lg p-4">
-            <p className="text-xs text-red-600 mb-1">Unused</p>
-            <p className="text-2xl font-bold text-red-700">{unusedCount}</p>
-          </div>
-        </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-        <div className="flex items-center space-x-2">
-          <span className="text-sm font-medium text-slate-700">Filter:</span>
-          <button
-            onClick={() => setFilter('all')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              filter === 'all'
-                ? 'bg-blue-600 text-white'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-            }`}
-          >
-            All ({resources.length})
-          </button>
-          <button
-            onClick={() => setFilter('active')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              filter === 'active'
-                ? 'bg-green-600 text-white'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-            }`}
-          >
-            Active ({activeCount})
-          </button>
-          <button
-            onClick={() => setFilter('unused')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              filter === 'unused'
-                ? 'bg-red-600 text-white'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-            }`}
-          >
-            Unused ({unusedCount})
-          </button>
-        </div>
-      </div>
+      {/* Content Card */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+         {/* Toolbar */}
+         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
+             <div className="flex items-center gap-2">
+                 <Filter className="w-4 h-4 text-slate-500" />
+                 <span className="text-sm font-medium text-slate-700">Filter Resources</span>
+             </div>
+             
+             <div className="flex p-1 bg-slate-200/50 rounded-lg border border-slate-200">
+                {(['all', 'active', 'unused'] as const).map((f) => (
+                    <button
+                        key={f}
+                        onClick={() => setFilter(f)}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all capitalize ${
+                        filter === f
+                            ? 'bg-white text-slate-900 shadow-sm ring-1 ring-black/5'
+                            : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                        }`}
+                    >
+                        {f}
+                    </button>
+                ))}
+             </div>
+         </div>
 
-      {/* Resources Table */}
-      <DynamicResourceTable
-        resources={resources}
-        loading={loading}
-        error={error}
-        onViewDetails={onViewDetails}
-        onDelete={onDelete}
-      />
+         {/* Table */}
+         <div className="p-0">
+            <DynamicResourceTable
+                resources={resources}
+                loading={loading}
+                error={error}
+                onViewDetails={onViewDetails}
+                onDelete={onDelete}
+            />
+         </div>
+      </div>
     </div>
   );
 }

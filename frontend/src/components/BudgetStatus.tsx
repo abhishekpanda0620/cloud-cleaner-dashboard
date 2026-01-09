@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { AlertTriangle, CheckCircle2, AlertOctagon, TrendingDown } from 'lucide-react';
 
 interface Budget {
     name: string;
@@ -34,73 +35,92 @@ const BudgetStatus: React.FC = () => {
         fetchBudgets();
     }, [apiUrl]);
 
-    if (loading) return <div className="h-48 bg-slate-100 rounded-xl animate-pulse"></div>;
+    if (loading) return <div className="h-40 bg-slate-50 border border-slate-200 rounded-lg animate-pulse"></div>;
     
     if (budgets.length === 0) {
         return (
-            <div className="bg-white rounded-2xl shadow-xl border border-slate-200/50 p-8">
-                <div className="flex items-center gap-3 mb-6">
-                    <span className="h-10 w-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center text-white">
-                        ⚠️
-                    </span>
-                    <h2 className="text-xl font-bold text-slate-900">AWS Budgets</h2>
+            <div className="bg-white rounded-lg border border-slate-200 p-6 flex flex-col items-center justify-center text-center">
+                <div className="p-3 bg-slate-50 rounded-full mb-3">
+                    <TrendingDown className="w-5 h-5 text-slate-400" />
                 </div>
-                <div className="text-center py-8 text-slate-500">
-                    <p>No budgets configured or permission denied.</p>
-                    <p className="text-xs mt-2">Set up budgets in AWS Console to see alerts here.</p>
-                </div>
+                <h3 className="text-sm font-semibold text-slate-900">No Budgets Configured</h3>
+                <p className="text-xs text-slate-500 mt-1 max-w-xs">
+                    Set up budgets in your AWS console to track spending against limits here.
+                </p>
             </div>
         );
     }
 
     return (
-        <div className="bg-white rounded-2xl shadow-xl border border-slate-200/50 p-8 hover:shadow-2xl transition-shadow duration-300">
+        <div className="bg-white rounded-lg border border-slate-200 p-6">
             <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
-                    <span className="h-10 w-10 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-lg flex items-center justify-center text-white">
-                        📉
-                    </span>
+                <h2 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                    <TrendingDown className="w-4 h-4 text-slate-500" />
                     Budget Status
                 </h2>
-                <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                <span className="bg-slate-100 text-slate-600 text-[10px] font-medium px-2 py-0.5 rounded-full border border-slate-200">
                     {budgets.length} Active
                 </span>
             </div>
             
-            <div className="space-y-6">
-                {budgets.map((budget, index) => (
-                    <div key={index} className="space-y-2">
-                        <div className="flex justify-between items-end">
-                            <div>
-                                <h3 className="font-semibold text-slate-900">{budget.name}</h3>
-                                <p className="text-xs text-slate-500">
-                                    {new Date(budget.time_period_start).toLocaleDateString()} - {new Date(budget.time_period_end).toLocaleDateString()}
-                                </p>
+            <div className="space-y-5">
+                {budgets.map((budget, index) => {
+                    const isAlarm = budget.status === 'ALARM';
+                    const isWarning = budget.status === 'WARNING';
+                    
+                    let statusColor = 'text-emerald-600';
+                    let barColor = 'bg-emerald-500';
+                    let Icon = CheckCircle2;
+
+                    if (isAlarm) {
+                        statusColor = 'text-red-600';
+                        barColor = 'bg-red-500';
+                        Icon = AlertOctagon;
+                    } else if (isWarning) {
+                        statusColor = 'text-amber-600';
+                        barColor = 'bg-amber-500';
+                        Icon = AlertTriangle;
+                    }
+
+                    return (
+                        <div key={index} className="space-y-2">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <div className="flex items-center gap-1.5">
+                                        <h3 className="text-sm font-medium text-slate-900">{budget.name}</h3>
+                                        {isAlarm && <AlertOctagon className="w-3 h-3 text-red-500" />}
+                                    </div>
+                                    <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                                        {new Date(budget.time_period_start).toLocaleDateString()} - {new Date(budget.time_period_end).toLocaleDateString()}
+                                    </p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-sm font-semibold text-slate-900">
+                                        ${budget.current_spend.toFixed(2)} <span className="text-slate-400 font-normal text-xs">/ ${budget.limit.toFixed(2)}</span>
+                                    </p>
+                                </div>
                             </div>
-                            <div className="text-right">
-                                <p className="font-bold text-slate-900">
-                                    ${budget.current_spend.toFixed(2)} <span className="text-slate-400 font-normal">/ ${budget.limit.toFixed(2)}</span>
-                                </p>
-                                <p className={`text-xs font-semibold ${
-                                    budget.status === 'ALARM' ? 'text-red-600' : 
-                                    budget.status === 'WARNING' ? 'text-amber-600' : 'text-emerald-600'
-                                }`}>
-                                    {budget.percent_used.toFixed(1)}% Used
-                                </p>
+                            
+                            <div className="relative pt-1">
+                                <div className="flex mb-1 items-center justify-between">
+                                    <span className={`text-[10px] font-semibold inline-block ${statusColor} flex items-center gap-1`}>
+                                        <Icon className="w-3 h-3" />
+                                        {budget.status}
+                                    </span>
+                                    <span className="text-[10px] font-semibold inline-block text-slate-600">
+                                        {budget.percent_used.toFixed(1)}%
+                                    </span>
+                                </div>
+                                <div className="overflow-hidden h-1.5 text-xs flex rounded bg-slate-100">
+                                    <div 
+                                        style={{ width: `${Math.min(budget.percent_used, 100)}%` }} 
+                                        className={`shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center ${barColor} transition-all duration-500`}
+                                    ></div>
+                                </div>
                             </div>
                         </div>
-                        
-                        <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
-                            <div 
-                                className={`h-full rounded-full transition-all duration-1000 ${
-                                    budget.status === 'ALARM' ? 'bg-red-500' : 
-                                    budget.status === 'WARNING' ? 'bg-amber-500' : 'bg-emerald-500'
-                                }`}
-                                style={{ width: `${Math.min(budget.percent_used, 100)}%` }}
-                            ></div>
-                        </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         </div>
     );

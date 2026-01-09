@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Clock, Bell, Mail, MessageSquare, Play, Pause, RefreshCw } from 'lucide-react';
+import { Clock, Bell, Mail, MessageSquare, Play, RefreshCw, Calendar, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 interface ScheduleConfig {
   enabled: boolean;
@@ -113,27 +113,6 @@ export default function ScheduleSettings() {
     }
   };
 
-  const handleTriggerNow = async () => {
-    setTriggering(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      const response = await fetch(`${API_URL}/schedule/trigger`, {
-        method: 'POST',
-      });
-
-      if (!response.ok) throw new Error('Failed to trigger scan');
-
-      setSuccess('Scan triggered successfully! Check notifications for results.');
-      setTimeout(() => setSuccess(null), 5000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to trigger scan');
-    } finally {
-      setTriggering(false);
-    }
-  };
-
   const handleChannelToggle = (channel: string) => {
     const newChannels = config.channels.includes(channel)
       ? config.channels.filter(c => c !== channel)
@@ -155,204 +134,135 @@ export default function ScheduleSettings() {
 
   if (loading) {
     return (
-      <div className="relative overflow-hidden bg-white rounded-2xl shadow-xl border border-slate-200/50 p-8">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gradient-to-r from-slate-200 to-slate-300 rounded-xl w-1/3 mb-6"></div>
-          <div className="space-y-4">
-            <div className="h-6 bg-slate-200 rounded-lg"></div>
-            <div className="h-6 bg-slate-200 rounded-lg w-5/6"></div>
-            <div className="h-6 bg-slate-200 rounded-lg w-4/6"></div>
-          </div>
-        </div>
+      <div className="bg-white rounded-lg border border-slate-200 p-6 animate-pulse">
+        <div className="h-6 bg-slate-100 rounded w-1/3 mb-4"></div>
+        <div className="h-24 bg-slate-100 rounded mb-4"></div>
+        <div className="h-10 bg-slate-100 rounded w-full"></div>
       </div>
     );
   }
 
   return (
-    <div className="relative overflow-hidden bg-white rounded-2xl shadow-xl border border-slate-200/50 hover:shadow-2xl transition-all duration-300">
-      {/* Decorative gradient background */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full blur-3xl opacity-30 -z-10"></div>
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-purple-100 to-pink-100 rounded-full blur-3xl opacity-30 -z-10"></div>
-      
-      <div className="relative p-8">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <div className="h-14 w-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform duration-300">
-              <Clock className="w-7 h-7 text-white" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                Schedule Settings
-              </h2>
-              <p className="text-sm text-slate-600 mt-1">Automate resource scanning and notifications</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl border border-slate-200 shadow-sm">
-            <span className={`text-sm font-semibold ${config.enabled ? 'text-green-600' : 'text-slate-500'}`}>
-              {config.enabled ? '● Enabled' : '○ Disabled'}
+    <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
+      <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Clock className="w-5 h-5 text-slate-500" />
+          <h3 className="font-semibold text-slate-900">Scan Schedule</h3>
+        </div>
+        
+        <div className="flex items-center gap-2">
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${config.enabled ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                {config.enabled ? 'Active' : 'Disabled'}
             </span>
             <button
-              onClick={() => handleToggle(!config.enabled)}
-              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-300 shadow-inner ${
-                config.enabled ? 'bg-gradient-to-r from-green-500 to-emerald-600' : 'bg-slate-300'
-              }`}
-            >
-              <span
-                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform duration-300 ${
-                  config.enabled ? 'translate-x-6' : 'translate-x-1'
+                onClick={() => handleToggle(!config.enabled)}
+                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 ${
+                config.enabled ? 'bg-blue-600' : 'bg-slate-200'
                 }`}
-              />
+            >
+                <span
+                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    config.enabled ? 'translate-x-4' : 'translate-x-0'
+                }`}
+                />
             </button>
-          </div>
         </div>
+      </div>
 
+      <div className="p-6 space-y-6">
         {error && (
-          <div className="mb-6 p-4 bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-200 rounded-xl text-red-700 text-sm shadow-md transform transition-all duration-300">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">⚠</span>
-              <span className="font-medium">{error}</span>
+            <div className="p-3 bg-red-50 border border-red-200 rounded-md flex items-center gap-2 text-sm text-red-700">
+                <AlertTriangle className="w-4 h-4" />
+                {error}
             </div>
-          </div>
         )}
 
         {success && (
-          <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl text-green-700 text-sm shadow-md transform transition-all duration-300">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">✓</span>
-              <span className="font-medium">{success}</span>
+             <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-md flex items-center gap-2 text-sm text-emerald-700">
+                <CheckCircle2 className="w-4 h-4" />
+                {success}
             </div>
-          </div>
         )}
 
-        <div className="space-y-6">
-          {/* Frequency Selection */}
-          <div className="group">
-            <label className="block text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-              <span className="text-lg">⏱️</span>
-              Scan Frequency
-            </label>
-            <select
-              value={config.frequency}
-              onChange={(e) => setConfig({ ...config, frequency: e.target.value })}
-              className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white shadow-sm hover:border-slate-300 disabled:bg-slate-50 disabled:cursor-not-allowed font-medium"
-              disabled={!config.enabled}
-            >
-              <option value="hourly">⚡ Hourly</option>
-              <option value="daily">📅 Daily</option>
-              <option value="weekly">📆 Weekly</option>
-              <option value="custom">⚙️ Custom</option>
-            </select>
-          </div>
-
-          {/* Custom Interval */}
-          {config.frequency === 'custom' && (
-            <div className="group animate-in fade-in duration-300">
-              <label className="block text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                <span className="text-lg">🔧</span>
-                Custom Interval (minutes)
-              </label>
-              <input
-                type="number"
-                min="1"
-                value={config.custom_interval || 60}
-                onChange={(e) => setConfig({ ...config, custom_interval: parseInt(e.target.value) })}
-                className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white shadow-sm hover:border-slate-300 disabled:bg-slate-50 disabled:cursor-not-allowed font-medium"
-                disabled={!config.enabled}
-              />
+        {/* Configuration Form */}
+        <div className={`space-y-6 transition-opacity duration-200 ${!config.enabled ? 'opacity-50 pointer-events-none' : ''}`}>
+             {/* Frequency */}
+             <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Frequency</label>
+                <select
+                    value={config.frequency}
+                    onChange={(e) => setConfig({ ...config, frequency: e.target.value })}
+                    className="block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                    disabled={!config.enabled}
+                >
+                    <option value="hourly">Hourly</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="custom">Custom Interval</option>
+                </select>
             </div>
-          )}
 
-          {/* Notification Channels */}
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-              <span className="text-lg">📣</span>
-              Notification Channels
-            </label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <label className="group relative overflow-hidden flex items-center gap-3 p-4 border-2 border-slate-200 rounded-xl hover:border-purple-300 hover:bg-purple-50/50 cursor-pointer transition-all duration-300 shadow-sm hover:shadow-md transform hover:-translate-y-0.5">
-                <input
-                  type="checkbox"
-                  checked={config.channels.includes('slack')}
-                  onChange={() => handleChannelToggle('slack')}
-                  className="w-5 h-5 text-purple-600 rounded-lg focus:ring-2 focus:ring-purple-500 border-2 border-slate-300"
-                  disabled={!config.enabled}
-                />
-                <div className="h-10 w-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
-                  <MessageSquare className="w-5 h-5 text-white" />
+            {config.frequency === 'custom' && (
+                <div>
+                   <label className="block text-sm font-medium text-slate-700 mb-2">Interval (minutes)</label>
+                   <input
+                        type="number"
+                        min="1"
+                        value={config.custom_interval || 60}
+                        onChange={(e) => setConfig({ ...config, custom_interval: parseInt(e.target.value) })}
+                        className="block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                   />
                 </div>
-                <span className="text-sm font-semibold text-slate-700">Slack</span>
-              </label>
-              <label className="group relative overflow-hidden flex items-center gap-3 p-4 border-2 border-slate-200 rounded-xl hover:border-blue-300 hover:bg-blue-50/50 cursor-pointer transition-all duration-300 shadow-sm hover:shadow-md transform hover:-translate-y-0.5">
-                <input
-                  type="checkbox"
-                  checked={config.channels.includes('email')}
-                  onChange={() => handleChannelToggle('email')}
-                  className="w-5 h-5 text-blue-600 rounded-lg focus:ring-2 focus:ring-blue-500 border-2 border-slate-300"
-                  disabled={!config.enabled}
-                />
-                <div className="h-10 w-10 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-lg flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
-                  <Mail className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-sm font-semibold text-slate-700">Email</span>
-              </label>
+            )}
+
+            {/* Channels */}
+            <div>
+                 <label className="block text-sm font-medium text-slate-700 mb-2">Notifications</label>
+                 <div className="space-y-2">
+                    <label className="flex items-center gap-2 p-2 rounded hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={config.channels.includes('slack')}
+                            onChange={() => handleChannelToggle('slack')}
+                            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                            disabled={!config.enabled}
+                        />
+                        <MessageSquare className="w-4 h-4 text-slate-500" />
+                        <span className="text-sm text-slate-700">Slack</span>
+                    </label>
+                    <label className="flex items-center gap-2 p-2 rounded hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={config.channels.includes('email')}
+                            onChange={() => handleChannelToggle('email')}
+                            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                             disabled={!config.enabled}
+                        />
+                        <Mail className="w-4 h-4 text-slate-500" />
+                        <span className="text-sm text-slate-700">Email</span>
+                    </label>
+                 </div>
             </div>
-          </div>
 
-          {/* Status Information */}
-          {status && (
-            <div className="pt-6 border-t-2 border-slate-200">
-              <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-                <span className="text-lg">📊</span>
-                Scan Status
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="group relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50 p-5 rounded-xl border-2 border-blue-200 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="h-8 w-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md">
-                      <span className="text-white text-sm">🕐</span>
-                    </div>
-                    <div className="text-xs text-slate-600 uppercase tracking-wide font-semibold">Last Scan</div>
-                  </div>
-                  <div className="text-base font-bold text-slate-900 ml-11">
-                    {formatDateTime(status.last_scan)}
-                  </div>
-                </div>
-                <div className="group relative overflow-hidden bg-gradient-to-br from-emerald-50 to-teal-50 p-5 rounded-xl border-2 border-emerald-200 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="h-8 w-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center shadow-md">
-                      <span className="text-white text-sm">⏭️</span>
-                    </div>
-                    <div className="text-xs text-slate-600 uppercase tracking-wide font-semibold">Next Scan</div>
-                  </div>
-                  <div className="text-base font-bold text-slate-900 ml-11">
-                    {config.enabled ? formatDateTime(status.next_scan) : 'Disabled'}
-                  </div>
-                </div>
-              </div>
+             <div className="pt-4 border-t border-slate-100 flex justify-end">
+                <button
+                    onClick={handleSave}
+                    disabled={saving || !config.enabled}
+                    className="inline-flex items-center gap-2 px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-slate-300 disabled:cursor-not-allowed"
+                >
+                    {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
+                    {saving ? 'Saving...' : 'Update Schedule'}
+                </button>
             </div>
-          )}
-
-          {/* Action Button */}
-          <div className="flex pt-6 border-t-2 border-slate-200">
-            <button
-              onClick={handleSave}
-              disabled={saving || !config.enabled}
-              className="group w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-300 disabled:to-slate-400 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 font-semibold"
-            >
-              {saving ? (
-                <>
-                  <RefreshCw className="w-5 h-5 animate-spin" />
-                  Updating...
-                </>
-              ) : (
-                <>
-                  <Bell className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
-                  Update Schedule
-                </>
-              )}
-            </button>
-          </div>
         </div>
+
+        {/* Footer Status */}
+        {status && (
+            <div className="bg-slate-50 rounded-md p-3 text-xs text-slate-500 flex justify-between items-center border border-slate-100">
+                <span>Last scan: {formatDateTime(status.last_scan)}</span>
+                <span>Next: {config.enabled ? formatDateTime(status.next_scan) : 'Paused'}</span>
+            </div>
+        )}
       </div>
     </div>
   );
