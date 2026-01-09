@@ -30,10 +30,10 @@ export default function DashboardV2() {
   }>({ isOpen: false, resourceType: null, resourceId: '', resourceName: '', showForceOption: false });
 
   const { services, loading: servicesLoading, error: servicesError, refetch: refetchServices } = useServices();
-  const { summary, loading: summaryLoading } = useResourceSummary();
+  const { summary, loading: summaryLoading, refetch: refetchSummary } = useResourceSummary();
   const { notifications, addNotification, dismissNotification } = useNotifications();
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8084/api';
 
   const handleServiceClick = (service: Service) => {
     setSelectedService(service);
@@ -44,10 +44,20 @@ export default function DashboardV2() {
     refetchServices();
   };
 
+  const mapResourceType = (type: string): any => {
+    if (!type) return null;
+    if (type === 'AWS::EC2::Instance' || type === 'EC2Instance') return 'ec2';
+    if (type === 'AWS::EC2::Volume' || type === 'EBSVolume') return 'ebs';
+    if (type === 'AWS::S3::Bucket' || type === 'S3Bucket') return 's3';
+    if (type === 'AWS::IAM::Role' || type === 'IAMRole') return 'iam-role';
+    if (type === 'AWS::IAM::User' || type === 'IAMUser') return 'iam-user';
+    return type.toLowerCase();
+  };
+
   const handleViewDetails = (resource: any) => {
     setDetailsModal({
       isOpen: true,
-      resourceType: resource.resource_type,
+      resourceType: mapResourceType(resource.resource_type),
       resourceId: resource.resource_id,
     });
   };
@@ -81,6 +91,7 @@ export default function DashboardV2() {
 
       // Refresh data
       refetchServices();
+      refetchSummary();
       if (selectedService) {
         setSelectedService(null);
       }
@@ -93,6 +104,17 @@ export default function DashboardV2() {
       });
       throw error;
     }
+  };
+
+  const handleScanComplete = () => {
+    refetchServices();
+    refetchSummary();
+    addNotification({
+      type: 'success',
+      title: 'Scan Complete',
+      message: 'Dashboard updated with latest findings',
+      duration: 4000
+    });
   };
 
   return (
@@ -173,7 +195,7 @@ export default function DashboardV2() {
           <>
             {/* Scan Control */}
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <ScanControl />
+              <ScanControl onScanComplete={handleScanComplete} />
             </div>
 
             {/* Overall Statistics */}

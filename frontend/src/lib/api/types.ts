@@ -130,7 +130,25 @@ export interface ResourceSummary {
   }[];
 }
 
-// Error Types
+// Right-Sizing Types
+export interface RightSizingRecommendation {
+  instance_id: string;
+  name?: string;
+  current_type: string;
+  suggested_type: string;
+  avg_cpu: number;
+  max_cpu: number;
+  estimated_monthly_savings: number;
+  confidence: 'High' | 'Low';
+}
+
+export interface RightSizingSummary {
+  total_analyzed: number;
+  opportunities_found: number;
+  total_potential_savings: number;
+  recommendations: RightSizingRecommendation[];
+}
+
 export interface ApiError {
   message: string;
   code?: string;
