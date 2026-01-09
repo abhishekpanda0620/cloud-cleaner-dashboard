@@ -10,6 +10,7 @@ from .service import AWSService
 from .resource import Resource
 from .cost_history import CostHistory
 from .scan_history import ScanHistory
+from .savings_history import SavingsHistory
 
 # Create async engine
 engine = create_async_engine(

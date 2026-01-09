@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     aws_access_key_id: str
     aws_secret_access_key: str
     aws_region: str 
+    aws_account_id: Optional[str] = None 
     
     # Notification Configuration
     slack_webhook_url: Optional[str] = None
@@ -36,7 +37,7 @@ class Settings(BaseSettings):
     # Service Discovery Configuration
     discovery_scan_interval_hours: int = 6
     discovery_lookback_days: int = 30
-    min_cost_threshold: float = 0.01  # Ignore services < $0.01
+    min_cost_threshold: float = 0.0  # Show all resources, including free tier
     
     model_config = SettingsConfigDict(
         env_file=".env",

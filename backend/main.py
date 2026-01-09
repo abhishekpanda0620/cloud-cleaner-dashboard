@@ -1,11 +1,19 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
-from api import ec2, ebs, s3, iam, notifications, celery_monitor, schedule, cost_analysis
+from api import ec2, ebs, s3, iam, notifications, celery_monitor, schedule, cost_analysis, rightsizing, savings, budgets
+
+# ... (skip to near end)
+
+
+from api import admin
 from api import scan, services_v2, resources_v2
 from core.config import settings
 from core.aws_client import get_aws_client_factory
 from core.cache import cached
+from contextlib import asynccontextmanager
+from models import AsyncSessionLocal, init_db
+from sqlalchemy import text
 import logging
 import sys
 
@@ -20,12 +28,52 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifecycle events for the application"""
+    # Startup
+    logger.info(f"Starting {settings.app_name}")
+    logger.info(f"AWS Region: {settings.aws_region}")
+    logger.info(f"Server running on {settings.host}:{settings.port}")
+    logger.info(f"Debug mode: {settings.debug}")
+    
+    # Initialize database tables
+    await init_db()
+
+    # 1. Reset any stuck "running" scans to "failed"
+    try:
+        async with AsyncSessionLocal() as db:
+            await db.execute(
+                text("UPDATE scan_history SET status = 'failed', error_message = 'System restart detected', completed_at = NOW() WHERE status = 'running'")
+            )
+            await db.commit()
+            logger.info("Cleared stale scan records")
+    except Exception as e:
+        logger.error(f"Error clearing stale scans: {e}")
+
+    # 2. Check AWS credentials (Synchronous)
+    try:
+        factory = get_aws_client_factory()
+        sts = factory.get_client('sts')
+        identity = sts.get_caller_identity()
+        logger.info(f"AWS Credentials verified. Account: {identity['Account']}")
+        settings.aws_account_id = identity['Account']
+    except Exception as e:
+        logger.error(f"AWS Credential Error: {e}")
+        logger.warning("Application will start but scanning may fail")
+    
+    yield
+    
+    # Shutdown
+    logger.info(f"Shutting down {settings.app_name}")
+
 # Create FastAPI app
 app = FastAPI(
     title=settings.app_name,
     description="API for identifying and managing unused AWS resources",
     version="1.0.0",
-    debug=settings.debug
+    debug=settings.debug,
+    lifespan=lifespan
 )
 
 # Configure CORS
@@ -53,21 +101,11 @@ app.include_router(notifications.router, prefix="/api/notifications", tags=["Not
 app.include_router(celery_monitor.router, prefix="/api/celery", tags=["Celery Monitoring"])
 app.include_router(schedule.router, prefix="/api/schedule", tags=["Schedule"])
 app.include_router(cost_analysis.router, prefix="/api", tags=["Cost Analysis"])
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Log startup information"""
-    logger.info(f"Starting {settings.app_name}")
-    logger.info(f"AWS Region: {settings.aws_region}")
-    logger.info(f"Server running on {settings.host}:{settings.port}")
-    logger.info(f"Debug mode: {settings.debug}")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Log shutdown information"""
-    logger.info(f"Shutting down {settings.app_name}")
+app.include_router(rightsizing.router, prefix="/api", tags=["Right-Sizing"])
+app.include_router(savings.router, prefix="/api", tags=["Savings"])
+app.include_router(budgets.router, prefix="/api", tags=["Budgets"])
+from api import admin
+app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
 
 
 @app.get("/")
@@ -79,7 +117,7 @@ async def root():
         "status": "running",
         "api_versions": {
             "v2": {
-                "description": "Dynamic service discovery with AWS Config",
+                "description": "Dynamic service discovery with plugin-based scanning",
                 "endpoints": {
                     "scan": "/api/v2/scan",
                     "services": "/api/v2/services",

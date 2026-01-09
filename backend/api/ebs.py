@@ -3,6 +3,7 @@ from typing import List, Dict, Any, Optional, Union
 from core.aws_client import get_aws_client_factory
 from core.cache import cached, invalidate_cache
 from core.config import settings
+from botocore.exceptions import ClientError
 import logging
 
 logger = logging.getLogger(__name__)
@@ -196,6 +197,11 @@ async def get_volume_details(volume_id: str, region: Optional[str] = Query(None)
         return details
         
     except HTTPException:
+        raise
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'InvalidVolume.NotFound':
+            logger.warning(f"Volume {volume_id} not found in AWS region {target_region}")
+            raise HTTPException(status_code=404, detail=f"Volume {volume_id} not found in AWS")
         raise
     except Exception as e:
         logger.error(f"Error fetching volume details for {volume_id}: {str(e)}")

@@ -55,11 +55,17 @@ class EC2Scanner(ScannerBase):
         
         for region in regions:
             try:
+                # Scan Instances
                 instances = self._scan_region(region)
                 all_instances.extend(instances)
-                logger.info(f"Found {len(instances)} EC2 instances in {region}")
+                
+                # Scan Volumes (EBS)
+                volumes = self._scan_volumes(region)
+                all_instances.extend(volumes)
+                
+                logger.info(f"Found {len(instances)} instances and {len(volumes)} volumes in {region}")
             except Exception as e:
-                logger.error(f"Error scanning EC2 in {region}: {e}")
+                logger.error(f"Error scanning EC2/EBS in {region}: {e}")
                 continue
         
         return all_instances
@@ -94,6 +100,58 @@ class EC2Scanner(ScannerBase):
             raise
         
         return instances
+
+    def _scan_volumes(self, region: str) -> List[Dict[str, Any]]:
+        """
+        Scan EBS volumes in a specific region.
+        """
+        volumes = []
+        try:
+            ec2_client = self.session.client('ec2', region_name=region)
+            paginator = ec2_client.get_paginator('describe_volumes')
+            for page in paginator.paginate():
+                for volume in page['Volumes']:
+                    resource = self._process_volume(volume, region)
+                    volumes.append(resource)
+        except Exception as e:
+            logger.error(f"Error describing volumes in {region}: {e}")
+        return volumes
+
+    def _process_volume(self, volume: Dict[str, Any], region: str) -> Dict[str, Any]:
+        volume_id = volume['VolumeId']
+        size = volume['Size']
+        state = volume['State']
+        volume_type = volume['VolumeType']
+        
+        # Tags
+        tags = {t['Key']: t['Value'] for t in volume.get('Tags', [])}
+        
+        # Unused logic: 'available' state means not attached
+        is_unused = (state == 'available')
+        
+        # Estimate cost (roughly $0.10/GB for gp2/gp3)
+        monthly_cost = size * 0.10
+        
+        return {
+            'resource_id': volume_id,
+            'resource_type': 'EBSVolume',
+            'resource_name': f"Volume {size}GB ({state})",
+            'region': region,
+            'status': 'unused' if is_unused else 'active',
+            'is_unused': is_unused,
+            'unused_reason': 'Volume not attached to any instance' if is_unused else None,
+            'estimated_monthly_cost': monthly_cost,
+            'resource_config': {
+                'volume_id': volume_id,
+                'size': size,
+                'state': state,
+                'volume_type': volume_type,
+                'encrypted': volume.get('Encrypted', False),
+                'create_time': volume['CreateTime'].isoformat()
+            },
+            'tags': tags,
+            'last_seen': datetime.now()
+        }
     
     def _process_instance(self, instance: Dict[str, Any], region: str) -> Dict[str, Any]:
         """

@@ -492,8 +492,39 @@ def scheduled_scan_task(self: Task) -> Dict[str, Any]:
         resources_found = scan_result.get('resources_found', 0)
         unused_resources = scan_result.get('unused_resources', 0)
         
-        # For backward compatibility with notifications, also fetch old-style data
-        regional_data = fetch_all_regions_data()
+        # Get resource breakdown from database for notifications
+        async def get_resource_breakdown():
+            async with AsyncSessionLocal() as db:
+                from models.resource import Resource
+                from models.service import AWSService
+                
+                # Get resources by service
+                result = await db.execute(
+                    select(
+                        AWSService.service_code,
+                        AWSService.service_name,
+                        func.count(Resource.id).label('count'),
+                        func.sum(case((Resource.is_unused == True, 1), else_=0)).label('unused_count')
+                    )
+                    .join(Resource)
+                    .group_by(AWSService.service_code, AWSService.service_name)
+                )
+                services_data = result.all()
+                
+                breakdown = {}
+                for service in services_data:
+                    breakdown[service.service_code] = {
+                        'name': service.service_name,
+                        'count': service.count,
+                        'unused_count': service.unused_count
+                    }
+                
+                return breakdown
+        
+        service_breakdown = asyncio.run(get_resource_breakdown())
+        
+        # Build resource_data for notifications using v0.5.0 data
+        regional_data = {'ec2_count': 0, 'ebs_count': 0, 'ec2_by_region': {}, 'ebs_by_region': {}}
         
         # Fetch S3 buckets (global) - only unused ones
         try:

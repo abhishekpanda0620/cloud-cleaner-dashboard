@@ -7,6 +7,7 @@ Provides endpoints for managing AWS resources discovered via scanner system.
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
+from sqlalchemy.orm import selectinload
 from typing import Dict, List, Optional
 from datetime import datetime
 
@@ -134,7 +135,7 @@ async def list_resources(
     """
     try:
         # Build query
-        query = select(Resource).join(AWSService)
+        query = select(Resource).options(selectinload(Resource.service)).join(AWSService)
         
         if unused_only:
             query = query.where(Resource.is_unused == True)
@@ -160,7 +161,7 @@ async def list_resources(
         resources = result.scalars().all()
         
         # Calculate total cost
-        total_cost = sum(float(r.estimated_monthly_cost) if r.estimated_monthly_cost else 0.0 for r in resources)
+        total_cost = sum(float(r.cost_monthly) if r.cost_monthly else 0.0 for r in resources)
         
         return {
             'resources': [
@@ -172,7 +173,7 @@ async def list_resources(
                     'region': r.region,
                     'is_unused': r.is_unused,
                     'unused_reason': r.unused_reason,
-                    'estimated_monthly_cost': float(r.estimated_monthly_cost) if r.estimated_monthly_cost else 0.0,
+                    'estimated_monthly_cost': float(r.cost_monthly) if r.cost_monthly else 0.0,
                     'service_code': r.service.service_code if r.service else None,
                     'service_name': r.service.service_name if r.service else None,
                     'first_seen': r.first_seen.isoformat(),
@@ -213,7 +214,7 @@ async def get_resource_details(
     """
     try:
         result = await db.execute(
-            select(Resource).where(Resource.id == resource_id)
+            select(Resource).options(selectinload(Resource.service)).where(Resource.id == resource_id)
         )
         resource = result.scalar_one_or_none()
         
@@ -228,7 +229,7 @@ async def get_resource_details(
             'region': resource.region,
             'is_unused': resource.is_unused,
             'unused_reason': resource.unused_reason,
-            'estimated_monthly_cost': float(resource.estimated_monthly_cost) if resource.estimated_monthly_cost else 0.0,
+            'estimated_monthly_cost': float(resource.cost_monthly) if resource.cost_monthly else 0.0,
             'service': {
                 'service_code': resource.service.service_code,
                 'service_name': resource.service.service_name
@@ -268,24 +269,64 @@ async def delete_resource(
     try:
         # Get resource
         result = await db.execute(
-            select(Resource).where(Resource.id == resource_id)
+            select(Resource).options(selectinload(Resource.service)).where(Resource.id == resource_id)
         )
         resource = result.scalar_one_or_none()
         
         if not resource:
             raise HTTPException(status_code=404, detail=f"Resource {resource_id} not found")
-        
-        # TODO: Implement actual AWS resource deletion based on resource type
-        # For now, just remove from database
-        # In production, you'd call the appropriate AWS API to delete the resource
-        
+            
         resource_type = resource.resource_type
         aws_resource_id = resource.resource_id
         region = resource.region
         
-        logger.warning(f"Resource deletion not yet implemented for {resource_type}")
-        logger.info(f"Would delete {resource_type} {aws_resource_id} in {region}")
+        # Implement actual AWS resource deletion
+        try:
+            from core.aws_client import get_aws_client_factory
+            factory = get_aws_client_factory()
+            
+            if resource_type in ['AWS::EC2::Volume', 'EBSVolume']:
+                client = factory.session.client('ec2', region_name=region)
+                client.delete_volume(VolumeId=aws_resource_id)
+                logger.info(f"Deleted EBS volume {aws_resource_id}")
+                
+            elif resource_type in ['AWS::EC2::Instance', 'EC2Instance']:
+                client = factory.session.client('ec2', region_name=region)
+                client.terminate_instances(InstanceIds=[aws_resource_id])
+                logger.info(f"Terminated EC2 instance {aws_resource_id}")
+                
+            elif resource_type in ['AWS::EC2::Snapshot', 'EBSSnapshot']:
+                client = factory.session.client('ec2', region_name=region)
+                client.delete_snapshot(SnapshotId=aws_resource_id)
+                logger.info(f"Deleted EBS snapshot {aws_resource_id}")
+                
+            elif resource_type in ['AWS::EC2::EIP', 'ElasticIP']:
+                client = factory.session.client('ec2', region_name=region)
+                client.release_address(AllocationId=aws_resource_id)
+                logger.info(f"Released Elastic IP {aws_resource_id}")
+                
+            else:
+                logger.warning(f"Resource deletion not implemented for {resource_type} - only removing from DB")
+                
+        except Exception as e:
+            logger.error(f"Failed to delete AWS resource {aws_resource_id}: {e}")
+            raise HTTPException(status_code=500, detail=f"AWS deletion failed: {str(e)}")
         
+        from models.savings_history import SavingsHistory
+        
+        # Record savings history
+        if resource.cost_monthly and resource.cost_monthly > 0:
+            savings_entry = SavingsHistory(
+                resource_id=resource.resource_id,
+                resource_name=resource.resource_name,
+                resource_type=resource.resource_type,
+                region=resource.region,
+                service_code=resource.service.service_code if resource.service else None,
+                estimated_monthly_cost=resource.cost_monthly
+            )
+            db.add(savings_entry)
+            logger.info(f"Recorded savings of ${resource.cost_monthly}/mo for {resource.resource_id}")
+
         # Remove from database
         await db.delete(resource)
         await db.commit()
@@ -296,7 +337,7 @@ async def delete_resource(
             'resource_id': aws_resource_id,
             'resource_type': resource_type,
             'region': region,
-            'note': 'AWS resource deletion not yet implemented - only removed from database'
+            'note': 'Resource deleted from AWS and database'
         }
         
     except HTTPException:

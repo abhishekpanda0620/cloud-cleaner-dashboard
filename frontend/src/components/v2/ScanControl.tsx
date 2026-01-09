@@ -3,7 +3,7 @@
 import { useScan } from '@/hooks/useScan';
 import { useState } from 'react';
 
-export default function ScanControl() {
+export default function ScanControl({ onScanComplete }: { onScanComplete?: () => void }) {
   const { status, loading, error, triggerScan } = useScan();
   const [scanning, setScanning] = useState(false);
 
@@ -11,6 +11,9 @@ export default function ScanControl() {
     try {
       setScanning(true);
       await triggerScan();
+      if (onScanComplete) {
+        onScanComplete();
+      }
     } catch (err) {
       console.error('Failed to trigger scan:', err);
     } finally {

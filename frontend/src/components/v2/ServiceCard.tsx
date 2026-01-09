@@ -54,24 +54,31 @@ export default function ServiceCard({ service, onClick }: ServiceCardProps) {
           <p className="text-2xl font-bold text-slate-900">{service.resource_count}</p>
         </div>
         <div>
-          <p className="text-xs text-slate-600 mb-1">Unused</p>
-          <p className="text-2xl font-bold text-slate-900">{service.unused_count || 0}</p>
+          <p className="text-xs text-slate-600 mb-1">Cost (30d)</p>
+          <p className="text-2xl font-bold text-slate-900">
+            ${service.total_cost_30d.toFixed(2)}
+          </p>
         </div>
       </div>
 
       {/* Status Badge */}
-      {service.resource_count > 0 && (
-        <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between">
+        {service.resource_count > 0 ? (
           <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusBadge()}`}>
-            {unusedPercent}% unused
+            {service.unused_count || 0} unused ({unusedPercent}%)
           </span>
-          {onClick && (
-            <span className="text-blue-600 text-sm font-medium">
-              View details →
-            </span>
-          )}
-        </div>
-      )}
+        ) : (
+          <span className="px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
+            No resources
+          </span>
+        )}
+        
+        {onClick && (
+          <span className="text-blue-600 text-sm font-medium">
+            View →
+          </span>
+        )}
+      </div>
 
       {/* Last Seen */}
       <div className="mt-4 pt-4 border-t border-slate-200">

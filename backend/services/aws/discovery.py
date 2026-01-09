@@ -89,19 +89,31 @@ class AWSServiceDiscoveryEngine:
                 min_cost=settings.min_cost_threshold
             )
             
-            # If Cost Explorer returns nothing, use default core services
-            if not services_with_costs:
-                logger.warning("No services with costs found from Cost Explorer. Using default core services.")
-                services_with_costs = [
-                    {'service_code': 'AmazonS3', 'service_name': 'Amazon Simple Storage Service', 'cost': 0.0, 'period_days': lookback_days},
-                    {'service_code': 'AmazonEC2', 'service_name': 'Amazon Elastic Compute Cloud', 'cost': 0.0, 'period_days': lookback_days},
-                    {'service_code': 'AmazonRDS', 'service_name': 'Amazon Relational Database Service', 'cost': 0.0, 'period_days': lookback_days},
-                    {'service_code': 'AWSLambda', 'service_name': 'AWS Lambda', 'cost': 0.0, 'period_days': lookback_days},
-                ]
-                logger.info(f"Falling back to {len(services_with_costs)} core services")
+            # Ensure core services are always included
+            core_services = [
+                {'service_code': 'AmazonS3', 'service_name': 'Amazon Simple Storage Service', 'cost': 0.0, 'period_days': lookback_days},
+                {'service_code': 'AmazonEC2', 'service_name': 'Amazon Elastic Compute Cloud', 'cost': 0.0, 'period_days': lookback_days},
+                {'service_code': 'AmazonRDS', 'service_name': 'Amazon Relational Database Service', 'cost': 0.0, 'period_days': lookback_days},
+                {'service_code': 'AWSLambda', 'service_name': 'AWS Lambda', 'cost': 0.0, 'period_days': lookback_days},
+            ]
+
+            # Merge core services with discovered services (prefer discovered data)
+            service_map = {s['service_code']: s for s in core_services}
+            
+            # Update/Overwrite with Cost Explorer data if available
+            if services_with_costs:
+                for s in services_with_costs:
+                    service_map[s['service_code']] = s
+            
+            services_with_costs = list(service_map.values())
+            logger.info(f"Proceeding with {len(services_with_costs)} services (including core services)")
             
             # Step 2: Store/update services in database
             services_count = await self._store_services(db, services_with_costs)
+            
+            # Update scan record with found services immediately
+            scan.services_found = services_count
+            await db.commit()
             
             # Step 3: Discover resources for each service using scanners
             logger.info(f"Discovering resources for {services_count} services using scanners")
@@ -148,7 +160,7 @@ class AWSServiceDiscoveryEngine:
         services_with_costs: List[Dict[str, Any]]
     ) -> int:
         """
-        Store or update services in database.
+        Store or update services in database using Upsert.
         
         Args:
             db: Database session
@@ -157,6 +169,8 @@ class AWSServiceDiscoveryEngine:
         Returns:
             Number of services stored/updated
         """
+        from sqlalchemy.dialects.postgresql import insert
+        
         now = datetime.utcnow()
         count = 0
         
@@ -165,32 +179,29 @@ class AWSServiceDiscoveryEngine:
             service_name = service_data['service_name']
             cost = service_data['cost']
             
-            # Check if service exists
-            result = await db.execute(
-                select(AWSService).where(AWSService.service_code == service_code)
+            # Prepare upsert statement
+            stmt = insert(AWSService).values(
+                service_code=service_code,
+                service_name=service_name,
+                is_active=True,
+                first_seen=now,
+                last_seen=now,
+                total_cost_30d=cost,
+                resource_count=0
             )
-            service = result.scalar_one_or_none()
             
-            if service:
-                # Update existing service
-                service.last_seen = now
-                service.is_active = True
-                service.total_cost_30d = cost
-                logger.debug(f"Updated service: {service_code}")
-            else:
-                # Create new service
-                service = AWSService(
-                    service_code=service_code,
-                    service_name=service_name,
-                    is_active=True,
-                    first_seen=now,
+            # On conflict, update existing fields
+            stmt = stmt.on_conflict_do_update(
+                index_elements=['service_code'],
+                set_=dict(
                     last_seen=now,
+                    is_active=True,
                     total_cost_30d=cost,
-                    resource_count=0
+                    # Don't overwrite first_seen or resource_count immediately
                 )
-                db.add(service)
-                logger.debug(f"Created service: {service_code}")
+            )
             
+            await db.execute(stmt)
             count += 1
         
         await db.commit()
@@ -246,12 +257,37 @@ class AWSServiceDiscoveryEngine:
                 # Run scanner
                 discovered_resources = scanner.scan()
                 
-                # Store resources
+                # Store resources and collect IDs
                 service_resources = 0
+                discovered_ids = []
                 for resource_data in discovered_resources:
                     await self._store_resource(db, service, resource_data, now)
                     service_resources += 1
+                    if 'resource_id' in resource_data:
+                        discovered_ids.append(resource_data['resource_id'])
                 
+                # Cleanup stale resources (not seen in this scan)
+                # Instead of relying on timestamp (which might not be flushed to DB yet),
+                # explicitly exclude the IDs we just found.
+                from sqlalchemy import delete
+                
+                if discovered_ids:
+                    delete_stmt = delete(Resource).where(
+                        Resource.service_id == service.id,
+                        Resource.resource_id.notin_(discovered_ids)
+                    )
+                else:
+                    # If nothing found, delete all resources for this service
+                    delete_stmt = delete(Resource).where(
+                        Resource.service_id == service.id
+                    )
+                
+                result = await db.execute(delete_stmt)
+                deleted_count = result.rowcount
+                
+                if deleted_count > 0:
+                    logger.info(f"Removed {deleted_count} stale resources for {service_code}")
+
                 # Update service resource count
                 service.resource_count = service_resources
                 total_resources += service_resources
