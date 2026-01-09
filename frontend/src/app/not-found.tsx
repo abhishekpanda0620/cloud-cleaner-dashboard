@@ -21,11 +21,11 @@ export default function NotFound() {
 
         <div className="pt-6">
           <Link
-            href="/"
+            href="/dashboard"
             className="inline-flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-xl font-medium hover:bg-slate-800 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
           >
             <ArrowLeft className="w-4 h-4" />
-            Return Home
+            Return to Dashboard
           </Link>
         </div>
       </div>
