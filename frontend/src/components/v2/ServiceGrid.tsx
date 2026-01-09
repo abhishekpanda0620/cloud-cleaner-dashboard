@@ -2,8 +2,8 @@
 
 import { Service } from '@/lib/api/types';
 import ServiceCard from './ServiceCard';
-import LoadingSpinner from '../LoadingSpinner';
-import { AlertTriangle, Search, Box } from 'lucide-react';
+import ServiceCardSkeleton from './ServiceCardSkeleton';
+import { AlertTriangle, Search } from 'lucide-react';
 
 interface ServiceGridProps {
   services: Service[];
@@ -19,7 +19,13 @@ export default function ServiceGrid({
   onServiceClick 
 }: ServiceGridProps) {
   if (loading) {
-    return <LoadingSpinner message="Loading services..." />;
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {[...Array(8)].map((_, i) => (
+          <ServiceCardSkeleton key={i} />
+        ))}
+      </div>
+    );
   }
 
   if (error) {
