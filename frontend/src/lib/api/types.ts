@@ -1,5 +1,5 @@
 /**
- * TypeScript types for Cloud Cleaner Dashboard v0.5.0 API
+ * TypeScript types for Cloud Cleaner Dashboard API
  */
 
 // Service Types
