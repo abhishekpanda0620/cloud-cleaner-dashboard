@@ -2,7 +2,7 @@
 
 A comprehensive AWS resource management dashboard for identifying and tracking unused cloud resources to optimize costs. Built with Python 3.13, Docker, and modern web technologies.
 
-![Dashboard Preview](docs/asset/bg.png)
+![Dashboard Preview](docs/asset/new_bg.png)
 
 ## ✨ Features
 
