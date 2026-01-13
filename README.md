@@ -10,13 +10,15 @@ A comprehensive AWS resource management dashboard for identifying and tracking u
 - **🖥️ EC2 Instance Monitoring**: Track stopped EC2 instances across all regions
 - **💾 EBS Volume Management**: Identify unattached EBS volumes across all regions
 - **🪣 S3 Bucket Analysis**: Find unused or empty S3 buckets (global)
+- **⚡ Elasticache Analysis**: Monitor unused Redis/Memcached clusters
 - **🔐 IAM Role Auditing**: Detect unused IAM roles with usage analysis
 - **👥 IAM User Auditing**: Monitor inactive IAM users with activity tracking
 - **🔑 Access Key Monitoring**: Track unused access keys with security risk assessment
 - **🌐 Multi-Region Scanning**: Comprehensive analysis across all AWS regions
 
 ### 💰 Cost Analysis & Reporting
-- **💵 Cost Estimation**: Calculate potential savings for unused resources
+- **💵 Real-time Pricing**: Accurate costs from AWS Price List API (cached via Redis)
+- **📈 Cost Estimation**: Calculate potential savings for unused resources
 - **📊 Cost Breakdown**: Visualize costs by resource type with beautiful gradient cards
 - **💡 Savings Calculator**: Interactive calculator showing daily, monthly, and yearly savings
 - **📈 Resource-specific Costs**: Detailed cost analysis per resource type (EC2, EBS, S3, IAM)
@@ -40,7 +42,7 @@ A comprehensive AWS resource management dashboard for identifying and tracking u
 
 ### ⚙️ Backend & API
 - **RESTful API**: FastAPI backend with comprehensive endpoints
-- **Redis Caching**: Improved performance with intelligent caching
+- **Redis Caching**: Improved performance with intelligent caching (especially for Pricing API)
 - **Celery Integration**: Asynchronous task processing for scheduled scans
 - **Error Handling**: Graceful error handling with detailed messages
 - **Health Monitoring**: Built-in health checks for all services
@@ -199,14 +201,34 @@ The application requires read-only permissions for AWS resource monitoring:
       "Effect": "Allow",
       "Action": [
         "ec2:DescribeInstances",
+        "ec2:DescribeRegions",
         "ec2:DescribeVolumes",
+        "ec2:DescribeSnapshots",
+        "ec2:DescribeAddresses",
+        "rds:DescribeDBInstances",
+        "rds:ListTagsForResource",
         "s3:ListAllMyBuckets",
         "s3:GetBucketLocation",
+        "s3:GetBucketTagging",
+        "s3:GetBucketVersioning",
+        "elasticache:DescribeCacheClusters",
+        "elasticache:ListTagsForResource",
+        "lambda:ListFunctions",
+        "lambda:GetFunction",
         "iam:ListRoles",
         "iam:GetRole",
+        "iam:ListRolePolicies",
+        "iam:ListAttachedRolePolicies",
         "iam:ListUsers",
+        "iam:GetUser",
+        "iam:ListUserPolicies",
+        "iam:ListAttachedUserPolicies",
         "iam:ListAccessKeys",
-        "iam:GetAccessKeyLastUsed"
+        "iam:GetAccessKeyLastUsed",
+        "iam:GetLoginProfile",
+        "pricing:GetProducts",
+        "pricing:GetAttributeValues",
+        "cloudwatch:GetMetricStatistics"
       ],
       "Resource": "*"
     }
@@ -235,6 +257,16 @@ cloud-cleaner-dashboard/
 │   │   ├── aws_client.py     # AWS client factory
 │   │   ├── celery_app.py     # Celery configuration
 │   │   └── cache.py          # Redis caching
+│   ├── services/             # Domain services
+│   │   └── aws/             # AWS specific logic
+│   │       ├── pricing.py    # AWS Price List API integration
+│   │       ├── scanner_registry.py # Plugin registry
+│   │       ├── scanner_base.py     # Base scanner class
+│   │       └── scanners/           # Resource scanners
+│   │           ├── ec2_scanner.py
+│   │           ├── rds_scanner.py
+│   │           ├── s3_scanner.py
+│   │           └── elasticache_scanner.py
 │   └── main.py               # FastAPI application
 ├── frontend/                  # Next.js frontend
 │   ├── src/app/             # Next.js pages
