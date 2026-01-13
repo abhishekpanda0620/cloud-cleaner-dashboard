@@ -10,6 +10,7 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 import logging
 from core.aws_client import get_aws_client_factory
+from .pricing import PricingService
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,7 @@ class ScannerBase(ABC):
         self.region = region
         self.factory = get_aws_client_factory()
         self.session = self.factory.session
+        self.pricing_service = PricingService()
         
     @property
     @abstractmethod
@@ -111,7 +113,7 @@ class ScannerBase(ABC):
             List of region codes
         """
         try:
-            ec2_client = self.session.client('ec2', region_name='us-east-1')
+            ec2_client = self.session.client('ec2', region_name=self.region or 'us-east-1')
             response = ec2_client.describe_regions(AllRegions=False)
             return [region['RegionName'] for region in response['Regions']]
         except Exception as e:

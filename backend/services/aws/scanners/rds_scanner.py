@@ -265,30 +265,34 @@ class RDSScanner(ScannerBase):
         """
         # Simplified pricing (approximate on-demand prices for MySQL/PostgreSQL)
         # In production, use AWS Price List API for accurate pricing
-        pricing = {
-            # T-series (burstable)
-            'db.t2.micro': 0.017,
-            'db.t2.small': 0.034,
-            'db.t2.medium': 0.068,
-            'db.t3.micro': 0.016,
-            'db.t3.small': 0.032,
-            'db.t3.medium': 0.064,
-            'db.t3.large': 0.128,
-            
-            # M-series (general purpose)
-            'db.m5.large': 0.192,
-            'db.m5.xlarge': 0.384,
-            'db.m5.2xlarge': 0.768,
-            'db.m5.4xlarge': 1.536,
-            
-            # R-series (memory optimized)
-            'db.r5.large': 0.24,
-            'db.r5.xlarge': 0.48,
-            'db.r5.2xlarge': 0.96,
-            'db.r5.4xlarge': 1.92,
-        }
+        engine = resource_config.get('engine', 'mysql')
+        hourly_rate = self.pricing_service.get_rds_price(resource_type, self.region, engine)
         
-        hourly_rate = pricing.get(resource_type, 0.10)  # Default to $0.10/hour
+        if hourly_rate == 0.0:
+            # Simplified pricing (approximate on-demand prices for MySQL/PostgreSQL)
+            pricing = {
+                # T-series (burstable)
+                'db.t2.micro': 0.017,
+                'db.t2.small': 0.034,
+                'db.t2.medium': 0.068,
+                'db.t3.micro': 0.016,
+                'db.t3.small': 0.032,
+                'db.t3.medium': 0.064,
+                'db.t3.large': 0.128,
+                
+                # M-series (general purpose)
+                'db.m5.large': 0.192,
+                'db.m5.xlarge': 0.384,
+                'db.m5.2xlarge': 0.768,
+                'db.m5.4xlarge': 1.536,
+                
+                # R-series (memory optimized)
+                'db.r5.large': 0.24,
+                'db.r5.xlarge': 0.48,
+                'db.r5.2xlarge': 0.96,
+                'db.r5.4xlarge': 1.92,
+            }
+            hourly_rate = pricing.get(resource_type, 0.10)
         
         # Calculate monthly cost (730 hours per month)
         monthly_cost = hourly_rate * 730

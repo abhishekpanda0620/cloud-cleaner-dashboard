@@ -129,8 +129,14 @@ class EC2Scanner(ScannerBase):
         # Unused logic: 'available' state means not attached
         is_unused = (state == 'available')
         
-        # Estimate cost (roughly $0.10/GB for gp2/gp3)
-        monthly_cost = size * 0.10
+        # Estimate cost
+        # Get price per GB-month from Pricing API
+        price_per_gb = self.pricing_service.get_ebs_price(volume_type, region)
+        # Fallback if price is 0 (API failure or not found) - usage hardcoded
+        if price_per_gb == 0.0:
+            price_per_gb = 0.10
+            
+        monthly_cost = size * price_per_gb
         
         return {
             'resource_id': volume_id,
@@ -304,35 +310,40 @@ class EC2Scanner(ScannerBase):
         """
         # Simplified pricing (approximate on-demand prices)
         # In production, use AWS Price List API for accurate pricing
-        pricing = {
-            # T-series (burstable)
-            't2.micro': 0.0116,
-            't2.small': 0.023,
-            't2.medium': 0.0464,
-            't2.large': 0.0928,
-            't3.micro': 0.0104,
-            't3.small': 0.0208,
-            't3.medium': 0.0416,
-            't3.large': 0.0832,
-            
-            # M-series (general purpose)
-            'm5.large': 0.096,
-            'm5.xlarge': 0.192,
-            'm5.2xlarge': 0.384,
-            'm5.4xlarge': 0.768,
-            
-            # C-series (compute optimized)
-            'c5.large': 0.085,
-            'c5.xlarge': 0.17,
-            'c5.2xlarge': 0.34,
-            
-            # R-series (memory optimized)
-            'r5.large': 0.126,
-            'r5.xlarge': 0.252,
-            'r5.2xlarge': 0.504,
-        }
+        hourly_rate = self.pricing_service.get_ec2_price(resource_type, self.region)
         
-        hourly_rate = pricing.get(resource_type, 0.05)  # Default to $0.05/hour
+        # Fallback to hardcoded if API returns 0.0
+        if hourly_rate == 0.0:
+            # Simplified pricing (approximate on-demand prices)
+            pricing = {
+                # T-series (burstable)
+                't2.micro': 0.0116,
+                't2.small': 0.023,
+                't2.medium': 0.0464,
+                't2.large': 0.0928,
+                't3.micro': 0.0104,
+                't3.small': 0.0208,
+                't3.medium': 0.0416,
+                't3.large': 0.0832,
+                
+                # M-series (general purpose)
+                'm5.large': 0.096,
+                'm5.xlarge': 0.192,
+                'm5.2xlarge': 0.384,
+                'm5.4xlarge': 0.768,
+                
+                # C-series (compute optimized)
+                'c5.large': 0.085,
+                'c5.xlarge': 0.17,
+                'c5.2xlarge': 0.34,
+                
+                # R-series (memory optimized)
+                'r5.large': 0.126,
+                'r5.xlarge': 0.252,
+                'r5.2xlarge': 0.504,
+                'r5.2xlarge': 0.504,
+            }
+            hourly_rate = pricing.get(resource_type, 0.05)
         
         # Calculate monthly cost (730 hours per month)
         monthly_cost = hourly_rate * 730
