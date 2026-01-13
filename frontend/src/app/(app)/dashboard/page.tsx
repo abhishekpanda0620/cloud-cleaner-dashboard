@@ -30,6 +30,8 @@ export default function DashboardV2() {
     showForceOption: boolean;
   }>({ isOpen: false, resourceType: null, resourceId: '', resourceName: '', showForceOption: false });
 
+  const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
+
   const { services, loading: servicesLoading, error: servicesError, refetch: refetchServices } = useServices();
   const { summary, loading: summaryLoading, refetch: refetchSummary } = useResourceSummary();
   const { notifications, addNotification, dismissNotification } = useNotifications();
@@ -181,7 +183,9 @@ export default function DashboardV2() {
             </div>
             <div className="flex items-center gap-3">
               <span className="px-2 py-1 text-xs font-medium bg-slate-100 text-slate-600 rounded border border-slate-200">
-                us-east-1
+                {selectedRegions.length === 0 ? 'All Regions' : 
+                 selectedRegions.length === 1 ? selectedRegions[0] : 
+                 `${selectedRegions.length} Regions`}
               </span>
             </div>
           </div>
@@ -232,7 +236,11 @@ export default function DashboardV2() {
             <div className="grid gap-6">
                 {/* Scan Control (1/3) */}
                 <div className="">
-                    <ScanControl onScanComplete={handleScanComplete} />
+                    <ScanControl 
+                      onScanComplete={handleScanComplete}
+                      selectedRegions={selectedRegions}
+                      onRegionChange={setSelectedRegions}
+                    />
                 </div>
                 {/* Schedule Settings (2/3) - WIDER as requested */}
                 <div className="">

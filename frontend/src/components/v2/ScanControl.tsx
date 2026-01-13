@@ -5,10 +5,18 @@ import { useState, useRef, useEffect } from 'react';
 import { Loader2, Play, ChevronDown, RefreshCw } from 'lucide-react';
 import RegionSelector from '../RegionSelector';
 
-export default function ScanControl({ onScanComplete }: { onScanComplete?: () => void }) {
+interface ScanControlProps {
+  onScanComplete?: () => void;
+  selectedRegions?: string[];
+  onRegionChange?: (regions: string[]) => void;
+}
+
+export default function ScanControl({ onScanComplete, selectedRegions: externalRegions, onRegionChange }: ScanControlProps) {
   const { status, loading, error, triggerScan } = useScan();
   const [scanning, setScanning] = useState(false);
-  const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
+  const [internalRegions, setInternalRegions] = useState<string[]>([]);
+  
+  const selectedRegions = externalRegions || internalRegions;
   const [showDropdown, setShowDropdown] = useState(false);
   
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -43,10 +51,11 @@ export default function ScanControl({ onScanComplete }: { onScanComplete?: () =>
   };
 
   const handleRegionChange = (regions: string | string[]) => {
-    if (Array.isArray(regions)) {
-        setSelectedRegions(regions);
+    const newRegions = Array.isArray(regions) ? regions : [regions];
+    if (onRegionChange) {
+      onRegionChange(newRegions);
     } else {
-        setSelectedRegions([regions]);
+      setInternalRegions(newRegions);
     }
   };
 
