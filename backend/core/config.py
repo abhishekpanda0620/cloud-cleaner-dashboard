@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     # Server Configuration
     port: int = 8084
     host: str = "0.0.0.0"
+    cors_origins: list[str] = ["http://localhost:3000"]
     
     # Application Configuration
     app_name: str = "Cloud Cleaner API"

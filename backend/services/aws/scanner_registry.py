@@ -60,6 +60,7 @@ class ScannerRegistry:
                 try:
                     # Import the module
                     module_name = f'services.aws.scanners.{scanner_file.stem}'
+                    # nosemgrep: python.lang.security.audit.non-literal-import.non-literal-import
                     module = importlib.import_module(module_name)
                     
                     # Find scanner classes in the module
