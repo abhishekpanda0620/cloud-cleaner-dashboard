@@ -2,7 +2,7 @@
 
 import { useScan } from '@/hooks/useScan';
 import { useState, useRef, useEffect } from 'react';
-import { Loader2, Play, ChevronDown, RefreshCw } from 'lucide-react';
+import { Loader2, Play, ChevronDown, RefreshCw, AlertTriangle } from 'lucide-react';
 import RegionSelector from '../RegionSelector';
 
 interface ScanControlProps {
@@ -93,6 +93,24 @@ export default function ScanControl({ onScanComplete, selectedRegions: externalR
               <p>
                 Analysing your AWS environment. This may take up to a minute.
               </p>
+            ) : error ? (
+              <div className="mt-2">
+                {(error.toLowerCase().includes('forbidden') || 
+                  error.toLowerCase().includes('access denied') || 
+                  error.includes('403')) ? (
+                  <div className="flex items-start gap-2 text-amber-700 bg-amber-50 p-2 rounded text-xs border border-amber-200">
+                     <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                     <div>
+                       <span className="font-semibold block">Access Denied</span>
+                       Please verify your AWS credentials and permissions. 
+                       <br/>
+                       Ensure the configured role has required read permissions.
+                     </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-red-600">{error}</p>
+                )}
+              </div>
             ) : (
               <div className="space-y-1">
                 <p>Start a new scan to discover resources.</p>
@@ -105,9 +123,6 @@ export default function ScanControl({ onScanComplete, selectedRegions: externalR
             )}
           </div>
           
-          {error && (
-             <p className="text-xs text-red-600 mt-2">{error}</p>
-          )}
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
