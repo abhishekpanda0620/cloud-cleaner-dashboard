@@ -12,6 +12,7 @@ from .resource import Resource
 from .cost_history import CostHistory
 from .scan_history import ScanHistory
 from .savings_history import SavingsHistory
+from .security import SecurityFramework, SecurityControl, SecurityCheck, SecurityFinding
 
 # Create async engine
 # Create async engine

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, PieChart, Settings } from 'lucide-react';
+import { LayoutDashboard, PieChart, Settings, ShieldCheck } from 'lucide-react';
 import Logo from '@/components/Logo';
 
 export default function Sidebar() {
@@ -11,6 +11,7 @@ export default function Sidebar() {
   const navigation = [
     { name: 'Resources', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Cost Analysis', href: '/cost-analysis', icon: PieChart },
+    { name: 'Security & Compliance', href: '/security', icon: ShieldCheck },
   ];
 
   return (
