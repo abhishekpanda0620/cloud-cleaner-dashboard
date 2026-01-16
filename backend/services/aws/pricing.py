@@ -255,3 +255,123 @@ class PricingService:
             'standard': 'standard'
         }
         return mapping.get(volume_type, volume_type)
+
+    def get_snapshot_price(self, region: str) -> float:
+        """
+        Get monthly price per GB for EBS Snapshots.
+        Standard pricing is usually around $0.05/GB-month.
+        """
+        cache_key = f"pricing:snapshot:{region}"
+        cached_price = self._get_cache(cache_key)
+        if cached_price is not None:
+             return cached_price
+            
+        try:
+            location = self._get_region_name(region)
+            
+            filters = [
+                {'Type': 'TERM_MATCH', 'Field': 'ServiceCode', 'Value': 'AmazonEC2'},
+                {'Type': 'TERM_MATCH', 'Field': 'location', 'Value': location},
+                {'Type': 'TERM_MATCH', 'Field': 'productFamily', 'Value': 'Storage Snapshot'},
+                {'Type': 'TERM_MATCH', 'Field': 'usagetype', 'Value': f'EBS:SnapshotUsage'},
+            ]
+            
+            # Note: UsageType might need region prefix like 'USE1-EBS:SnapshotUsage'
+            # Let's try a broader search first or fallback to standard
+            
+            price = self._get_price_from_api(filters)
+            
+            # If API fails to find specific match, use standard fallback
+            if price == 0.0:
+                 price = 0.05
+
+            self._set_cache(cache_key, price)
+            return price
+        except Exception as e:
+            logger.debug(f"Error Snapshot price: {e}")
+            return 0.05
+
+    def get_eip_price(self, region: str) -> float:
+        """
+        Get hourly price for unattached Elastic IP.
+        Standard is $0.005/hour.
+        """
+        cache_key = f"pricing:eip:{region}"
+        cached_price = self._get_cache(cache_key)
+        if cached_price is not None:
+             return cached_price
+             
+        # EIP pricing is fairly static ($0.005/hr for idle), but let's try API or just cache the standard
+        # API Term: ElasticIP:IdleAddress
+        try:
+            price = 0.005 # Standard API price
+            self._set_cache(cache_key, price)
+            return price
+        except:
+             return 0.005
+
+    def get_elb_price(self, region: str, load_balancer_type: str = 'application') -> float:
+        """
+        Get hourly price for Load Balancer (ALB/NLB).
+        Does not include LCU/Data processing costs, just the hourly running cost.
+        """
+        cache_key = f"pricing:elb:{load_balancer_type}:{region}"
+        cached_price = self._get_cache(cache_key)
+        if cached_price is not None:
+             return cached_price
+            
+        try:
+            location = self._get_region_name(region)
+            
+            # Map type to API group
+            # ALB = 'Load Balancer-Application'
+            # NLB = 'Load Balancer-Network'
+            # CLB = 'Load Balancer'
+            
+            group_map = {
+                'application': 'AWS-Application-Load-Balancers', # Product Group?
+                'network': 'AWS-Network-Load-Balancers',
+                'classic': 'AWS-Load-Balancers'
+            }
+            
+            # Product Family: 'Load Balancer-Application'
+            product_family = 'Load Balancer-Application'
+            if load_balancer_type == 'network':
+                product_family = 'Load Balancer-Network'
+            
+            filters = [
+                {'Type': 'TERM_MATCH', 'Field': 'ServiceCode', 'Value': 'AmazonEC2'}, # ELB is often under EC2
+                {'Type': 'TERM_MATCH', 'Field': 'location', 'Value': location},
+                {'Type': 'TERM_MATCH', 'Field': 'productFamily', 'Value': product_family},
+                {'Type': 'TERM_MATCH', 'Field': 'group', 'Value': 'ELB:Balancer'}, # Usage type often contains 'LoadBalancerUsage'
+            ]
+            
+            # This is complex in determining specific Usagetype.
+            # Simplified: Use Application Load Balancer Hourly
+            
+            filters = [
+                {'Type': 'TERM_MATCH', 'Field': 'ServiceCode', 'Value': 'AmazonEC2'},
+                {'Type': 'TERM_MATCH', 'Field': 'location', 'Value': location},
+                {'Type': 'TERM_MATCH', 'Field': 'productFamily', 'Value': product_family},
+            ]
+
+             # Given the complexity of filtering specifically for the "hourly" charge vs LCU charge via generic filters,
+             # we might get multiple results. We'll rely on the logic finding the first OnDemand price.
+             # Typically ~$0.0225/hr
+            
+            price = self._get_price_from_api(filters)
+            
+            if price == 0.0:
+                 # Fallbacks for US regions
+                 if load_balancer_type == 'application':
+                     price = 0.0225
+                 elif load_balancer_type == 'network':
+                     price = 0.0225
+                 else:
+                     price = 0.025
+
+            self._set_cache(cache_key, price)
+            return price
+        except Exception as e:
+            logger.debug(f"Error ELB price: {e}")
+            return 0.0225

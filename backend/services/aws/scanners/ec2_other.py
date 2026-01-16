@@ -45,6 +45,7 @@ class EC2OtherScanner(ScannerBase):
                     'resource_name': f"Snapshot ({snap['VolumeSize']} GB)",
                     'region': self.region,
                     'is_unused': False, # Default
+                    'estimated_monthly_cost': snap['VolumeSize'] * self.pricing_service.get_snapshot_price(self.region),
                     'resource_config': {
                         'VolumeSize': snap['VolumeSize'],
                         'StartTime': snap['StartTime'].isoformat(),
@@ -73,6 +74,7 @@ class EC2OtherScanner(ScannerBase):
                     'region': self.region,
                     'is_unused': is_unused,
                     'unused_reason': 'Not attached to any instance' if is_unused else None,
+                    'estimated_monthly_cost': (self.pricing_service.get_eip_price(self.region) * 730) if is_unused else 0.0,
                     'resource_config': {
                         'PublicIp': addr['PublicIp'],
                         'Domain': addr.get('Domain'),

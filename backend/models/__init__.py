@@ -1,6 +1,7 @@
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.pool import NullPool
 from core.config import settings
 
 Base = declarative_base()
@@ -13,13 +14,13 @@ from .scan_history import ScanHistory
 from .savings_history import SavingsHistory
 
 # Create async engine
+# Create async engine
+# Use NullPool to avoid asyncio loop issues with Celery/multiprocessing
 engine = create_async_engine(
     settings.database_url,
     echo=settings.debug,
     future=True,
-    pool_pre_ping=True,
-    pool_size=10,
-    max_overflow=20
+    poolclass=NullPool
 )
 
 # Create async session factory
