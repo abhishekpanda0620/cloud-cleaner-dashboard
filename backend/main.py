@@ -106,6 +106,8 @@ app.include_router(savings.router, prefix="/api", tags=["Savings"])
 app.include_router(budgets.router, prefix="/api", tags=["Budgets"])
 from api import admin
 app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
+from api import security
+app.include_router(security.router, prefix="/api", tags=["Security - CIS Benchmark"])
 
 
 @app.get("/")

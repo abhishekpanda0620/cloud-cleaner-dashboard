@@ -36,10 +36,15 @@ async def seed_security_data():
             ("1.2", "MFA enabled on root account", "Ensure MFA is enabled for the 'root' user account."),
             ("1.3", "IAM password policy enforced", "Ensure the credentials of all IAM users adhere to a strong password policy."),
             ("2.1", "CloudTrail enabled in all regions", "Ensure CloudTrail is enabled in all regions."),
-            ("2.2", "CloudTrail log file validation", "Ensure CloudTrail log file validation is enabled."),
-            ("3.1", "S3 Block Public Access enabled", "Ensure S3 Block Public Access is enabled at the account level."),
-            ("3.2", "S3 encryption enabled", "Ensure Server-Side Encryption is enabled for all S3 buckets."),
-            ("4.1", "Security groups restrict 0.0.0.0/0", "Ensure no security groups allow ingress from 0.0.0.0/0 to remote server administration ports.")
+            ("2.3", "S3 Bucket CloudTrail logs access logging", "Ensure S3 bucket access logging is enabled on the CloudTrail S3 bucket."),
+            ("2.4", "CloudTrail logs integrated with CloudWatch", "Ensure CloudTrail logs are integrated with CloudWatch Logs."),
+            ("3.3", "S3 Bucket Public Access via Policy", "Ensure S3 buckets do not allow public read access via S3 policy."),
+            ("3.4", "S3 Bucket Public Access via ACL", "Ensure S3 buckets do not allow public read access via ACLs."),
+            ("4.2", "Restricted Access to Port 22", "Ensure no security groups allow ingress from 0.0.0.0/0 to port 22."),
+            ("5.2", "Restricted Access to Port 3389", "Ensure no security groups allow ingress from 0.0.0.0/0 to port 3389."),
+            ("4.4", "Default Security Group restricts all traffic", "Ensure the default security group of every VPC restricts all traffic."),
+            ("4.3", "Log metric filter and alarm for root usage", "Ensure a log metric filter and alarm exist for usage of 'root' account."),
+            ("5.1", "NACLs no ingress 0.0.0.0/0 to remote admin", "Ensure Network ACLs do not allow ingress from 0.0.0.0/0 to remote server administration ports."),
         ]
 
         print(f"Seeding {len(controls_data)} controls...")
@@ -54,14 +59,19 @@ async def seed_security_data():
             )
             await session.merge(control)
         
-        # 4. Define Placeholder Checks (Phase 1 will implement these)
-        # We pre-seed them so the dashboard isn't empty.
+        # 4. Define Checks (Mapped to Scanners)
         checks_data = [
+            # ID, Control ID, Name, Remediation, Severity
             ("check_iam_root_keys", "cis_1.1", "Check Root Keys", "Remove keys for root.", "Critical"),
             ("check_iam_root_mfa", "cis_1.2", "Check Root MFA", "Enable MFA for root.", "Critical"),
             ("check_iam_password_policy", "cis_1.3", "Check Password Policy", "Set a strong policy.", "Medium"),
             ("check_cloudtrail_enabled", "cis_2.1", "Check CloudTrail", "Enable CloudTrail.", "High"),
+            ("check_cloudtrail_validation", "cis_2.2", "CloudTrail Log Validation", "Enable log file validation.", "Medium"),
             ("check_s3_block_public", "cis_3.1", "Check S3 BPA", "Turn on BPA.", "High"),
+            ("check_s3_encryption", "cis_3.2", "Check S3 Encryption", "Enable Bucket Encryption.", "High"),
+            ("check_sg_open_ports", "cis_4.1", "Check Open Ports", "Restrict 0.0.0.0/0 on port 22/3389.", "Critical"),
+            ("check_default_sg_restricted", "cis_4.4", "Check Default SG", "Remove rules from default SG.", "High"),
+            ("check_root_usage_alarm", "cis_4.3", "Root Usage Alarm", "Create metric filter/alarm for Root usage.", "Medium"),
         ]
 
         print(f"Seeding {len(checks_data)} check definitions...")
