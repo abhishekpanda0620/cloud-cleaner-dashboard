@@ -119,7 +119,7 @@ export default function SecurityPage() {
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               scanning 
                 ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm'
+                : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
             }`}
           >
             <RefreshCw className={`w-4 h-4 ${scanning ? 'animate-spin' : ''}`} />
