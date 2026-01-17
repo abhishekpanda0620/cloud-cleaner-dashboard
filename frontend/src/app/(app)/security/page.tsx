@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { ShieldCheck, RefreshCw, AlertTriangle, CheckCircle, XCircle, Search, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
+import { ShieldCheck, RefreshCw, AlertTriangle, CheckCircle, XCircle, Search, ChevronLeft, ChevronRight, Eye, Download, ListFilter, ArrowUpDown } from 'lucide-react';
 import { Skeleton } from '@/components/Skeleton';
 import { FindingDetailsModal } from '@/components/FindingDetailsModal';
 
@@ -33,6 +33,8 @@ export default function SecurityPage() {
   
   // UI State
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'PASS' | 'FAIL'>('ALL');
+  const [sortOrder, setSortOrder] = useState<'severity_desc' | 'severity_asc'>('severity_desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedFinding, setSelectedFinding] = useState<Finding | null>(null);
   const itemsPerPage = 10;
@@ -74,13 +76,34 @@ export default function SecurityPage() {
 
   // Filter and Pagination Logic
   const filteredFindings = useMemo(() => {
-    return findings.filter(f => 
-       f.check_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-       f.resource_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-       f.severity.toLowerCase().includes(searchQuery.toLowerCase()) ||
-       f.check_id.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [findings, searchQuery]);
+    let result = findings.filter(f => {
+       const matchesSearch = 
+        f.check_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        f.resource_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        f.severity.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        f.check_id.toLowerCase().includes(searchQuery.toLowerCase());
+       
+       const matchesStatus = statusFilter === 'ALL' || f.status === statusFilter;
+       
+       return matchesSearch && matchesStatus;
+    });
+
+    // Sort by Severity
+    const severityWeight = { 'Critical': 4, 'High': 3, 'Medium': 2, 'Low': 1 };
+    
+    result.sort((a, b) => {
+        const weightA = severityWeight[a.severity as keyof typeof severityWeight] || 0;
+        const weightB = severityWeight[b.severity as keyof typeof severityWeight] || 0;
+        
+        if (sortOrder === 'severity_desc') {
+            return weightB - weightA;
+        } else {
+            return weightA - weightB;
+        }
+    });
+
+    return result;
+  }, [findings, searchQuery, statusFilter, sortOrder]);
 
   const totalPages = Math.ceil(filteredFindings.length / itemsPerPage);
   const currentFindings = filteredFindings.slice(
@@ -113,18 +136,27 @@ export default function SecurityPage() {
             </div>
           </div>
           
-          <button
-            onClick={handleScan}
-            disabled={scanning}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              scanning 
-                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
-            }`}
-          >
-            <RefreshCw className={`w-4 h-4 ${scanning ? 'animate-spin' : ''}`} />
-            {scanning ? 'Scanning...' : 'Run New Scan'}
-          </button>
+          <div className="flex gap-3">
+            <button
+               onClick={() => window.open(`${apiUrl}/security/export`, '_blank')}
+               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 shadow-sm transition-all"
+            >
+              <Download className="w-4 h-4" />
+              Export Report
+            </button>
+            <button
+                onClick={handleScan}
+                disabled={scanning}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                scanning 
+                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
+                }`}
+            >
+                <RefreshCw className={`w-4 h-4 ${scanning ? 'animate-spin' : ''}`} />
+                {scanning ? 'Scanning...' : 'Run New Scan'}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -187,22 +219,49 @@ export default function SecurityPage() {
         {/* Findings Section */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col h-[600px]">
             {/* Toolbar */}
-            <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50 shrink-0">
-                <div className="flex items-center gap-4">
+            <div className="px-6 py-4 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center bg-slate-50 shrink-0 gap-4">
+                <div className="flex items-center gap-4 w-full sm:w-auto">
                     <h3 className="font-semibold text-slate-900">Findings</h3>
-                    <div className="relative">
+                    <div className="relative flex-1 sm:flex-none">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input 
                             type="text" 
                             placeholder="Search findings..." 
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9 pr-4 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 w-64"
+                            className="pl-9 pr-4 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-64"
                         />
                     </div>
                 </div>
-                <div className="text-xs text-slate-500">
-                    {filteredFindings.length} results
+
+                <div className="flex items-center gap-3">
+                     {/* Status Filter */}
+                     <div className="flex items-center gap-2">
+                        <ListFilter className="w-4 h-4 text-slate-400" />
+                        <select 
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value as any)}
+                            className="text-sm border border-slate-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                        >
+                            <option value="ALL">All Status</option>
+                            <option value="FAIL">Failing</option>
+                            <option value="PASS">Passing</option>
+                        </select>
+                     </div>
+
+                     {/* Sort Toggle */}
+                     <button 
+                        onClick={() => setSortOrder(prev => prev === 'severity_desc' ? 'severity_asc' : 'severity_desc')}
+                        className="flex items-center gap-2 px-3 py-1.5 border border-slate-300 rounded-lg text-sm bg-white hover:bg-slate-50 transition-colors"
+                        title="Sort by Severity"
+                     >
+                        <ArrowUpDown className="w-4 h-4 text-slate-500" />
+                        <span className="text-slate-700">Severity</span>
+                     </button>
+
+                    <div className="text-xs text-slate-500 ml-2">
+                        {filteredFindings.length} results
+                    </div>
                 </div>
             </div>
             

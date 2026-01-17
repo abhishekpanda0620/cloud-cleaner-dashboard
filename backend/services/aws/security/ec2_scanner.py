@@ -22,6 +22,9 @@ class EC2SecurityScanner(SecurityScannerBase):
             # CIS 4.4 Ensure the default security group of every VPC restricts all traffic
             findings.extend(self._check_default_security_group_closed(ec2_client))
             
+            # CIS 3.5 Ensure VPC Flow Logs are enabled for all VPCs
+            findings.extend(self._check_vpc_flow_logs(ec2_client))
+            
         except Exception as e:
             logger.error(f"Error running EC2 security checks: {e}")
             
@@ -79,20 +82,12 @@ class EC2SecurityScanner(SecurityScannerBase):
                     if violations:
                         findings.append(self.build_finding(
                             check_id="check_sg_open_ports", 
-                            # Note: We didn't seed "check_sg_open_ports" specifically, 
-                            # we need to ensure this ID matches what we might seed or just use a generic one.
-                            # In seed script: "4.1" was just a Control, we didn't add a Check for it.
-                            # I will need to ADD the check definition in a migration or just rely on dynamic creation if I fixed that.
-                            # For now I will use "check_sg_open_ports" and we might need to update seed data.
                             status=FindingStatus.FAIL,
                             resource_id=sg_id,
                             resource_type="AWS::EC2::SecurityGroup",
                             evidence={"violations": violations, "group_name": sg_name}
                         ))
                     
-                    # Note: If passing, we usually don't generate a finding for EVERY SG to avoid noise,
-                    # OR we generate a PASS for every SG. 
-                    # For a dashboard, seeing "153 Pass, 2 Fail" is good.
                     else:
                         findings.append(self.build_finding(
                             check_id="check_sg_open_ports",
@@ -125,7 +120,6 @@ class EC2SecurityScanner(SecurityScannerBase):
                 egress = sg.get('IpPermissionsEgress', [])
                 
                 # CIS recommends both should be empty (no rules)
-                # However, some might argue egress is needed, but strict CIS says restict "all traffic".
                 
                 is_compliant = (len(ingress) == 0 and len(egress) == 0)
                 
@@ -148,4 +142,43 @@ class EC2SecurityScanner(SecurityScannerBase):
         except Exception as e:
             logger.warning(f"Failed check 4.4: {e}")
             
+        return findings
+
+    def _check_vpc_flow_logs(self, client) -> List[Dict[str, Any]]:
+        """
+        CIS 3.5: Ensure VPC Flow Logs are enabled for all VPCs.
+        """
+        findings = []
+        try:
+            # Get all VPCs
+            vpcs = client.describe_vpcs().get('Vpcs', [])
+            
+            for vpc in vpcs:
+                vpc_id = vpc['VpcId']
+                
+                # Check for Flow Logs attached to this VPC
+                # Filter by resource-id = vpc_id
+                flow_logs = client.describe_flow_logs(
+                    Filters=[{'Name': 'resource-id', 'Values': [vpc_id]}]
+                ).get('FlowLogs', [])
+                
+                # Must be active
+                active_logs = [fl for fl in flow_logs if fl.get('FlowLogStatus') == 'ACTIVE']
+                
+                status = FindingStatus.PASS if active_logs else FindingStatus.FAIL
+                
+                findings.append(self.build_finding(
+                    check_id="check_vpc_flow_logs",
+                    status=status,
+                    resource_id=vpc_id,
+                    resource_type="AWS::EC2::VPC",
+                    evidence={
+                        "flow_logs_count": len(flow_logs),
+                        "active_logs_count": len(active_logs)
+                    }
+                ))
+                
+        except Exception as e:
+             logger.warning(f"Failed check 3.5: {e}")
+             
         return findings

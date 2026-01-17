@@ -2,6 +2,8 @@ from typing import List, Dict, Any
 import logging
 from .base import SecurityScannerBase
 from models.security import FindingStatus
+import datetime
+from dateutil.parser import parse
 
 logger = logging.getLogger(__name__)
 
@@ -37,22 +39,60 @@ class IAMSecurityScanner(SecurityScannerBase):
             if policy_finding:
                 findings.append(policy_finding)
 
+            # New check: Unused credentials
+            credential_report = self._get_credential_report(iam_client)
+            if credential_report:
+                unused_credentials_finding = self._check_unused_credentials(credential_report)
+                if unused_credentials_finding:
+                    findings.append(unused_credentials_finding)
+
         except Exception as e:
             logger.error(f"Error running IAM security checks: {e}")
             
         return findings
 
+    def _get_credential_report(self, client) -> List[Dict[str, Any]]:
+        """
+        Fetches the IAM credential report.
+        """
+        try:
+            # Generate report
+            client.generate_credential_report()
+            
+            # Wait for report to be ready
+            report_state = ''
+            max_retries = 10
+            retries = 0
+            while report_state != 'COMPLETE' and retries < max_retries:
+                response = client.get_credential_report()
+                report_state = response.get('ReportState')
+                if report_state == 'COMPLETE':
+                    break
+                elif report_state == 'STARTED':
+                    # Wait a bit before retrying
+                    import time
+                    time.sleep(1)
+                    retries += 1
+                else:
+                    logger.warning(f"Credential report generation failed or unknown state: {report_state}")
+                    return []
+
+            if report_state != 'COMPLETE':
+                return []
+
+            response = client.get_credential_report()
+            report_content = response.get('Content').decode('utf-8')
+            import csv
+            import io
+            reader = csv.DictReader(io.StringIO(report_content))
+            return list(reader)
+        except Exception as e:
+            logger.error(f"Failed to get credential report: {e}")
+            return []
+
     def _check_root_access_keys(self, client) -> Dict[str, Any]:
         """
         CIS 1.1: Ensure no access keys are associated with the root account.
-        Strategy: Use get_account_summary() -> AccountAccessKeysPresent?
-        Actually, get_account_summary gives total keys, but we want ROOT keys.
-        The most reliable way is `get_credential_report`, but that's async and slow.
-        
-        Alternative: `get_account_summary` returns `AccountAccessKeysPresent`. 
-        Note: This field indicates if there are *any* access keys for the ACCOUNT (usually root).
-        Wait, `AccountAccessKeysPresent` in get_account_summary traditionally refers to the root account's keys?
-        Let's verify: AWS docs say "The number of access keys for the AWS account root user." (Map content usually).
         """
         try:
             summary = client.get_account_summary()
@@ -76,7 +116,6 @@ class IAMSecurityScanner(SecurityScannerBase):
     def _check_root_mfa(self, client) -> Dict[str, Any]:
         """
         CIS 1.2: Ensure MFA is enabled for the 'root' user account.
-        Strategy: get_account_summary() -> AccountMFAEnabled
         """
         try:
             summary = client.get_account_summary()
@@ -106,13 +145,6 @@ class IAMSecurityScanner(SecurityScannerBase):
             try:
                 response = client.get_account_password_policy()
                 policy = response.get('PasswordPolicy', {})
-                
-                # Compliance logic:
-                # 1. RequireUppercaseCharacters
-                # 2. RequireLowercaseCharacters
-                # 3. RequireSymbols
-                # 4. RequireNumbers
-                # 5. MinimumPasswordLength >= 14
                 
                 length = policy.get('MinimumPasswordLength', 0)
                 upper = policy.get('RequireUppercaseCharacters', False)
@@ -146,4 +178,82 @@ class IAMSecurityScanner(SecurityScannerBase):
             )
         except Exception as e:
             logger.warning(f"Failed check 1.3: {e}")
+            return None
+
+    def _check_unused_credentials(self, credential_report: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        CIS 1.16: Ensure IAM users' credentials are disabled if unused for 45 days.
+        """
+        try:
+            unused_users = []
+            now = datetime.datetime.now(datetime.timezone.utc)
+            cutoff_days = 45
+
+            for row in credential_report:
+                user = row['user']
+                if user == '<root_account>':
+                    continue
+
+                # Check Password Last Used
+                password_enabled = row.get('password_enabled') == 'true'
+                password_last_used = row.get('password_last_used')
+                
+                # Check Access Key 1
+                ak1_active = row.get('access_key_1_active') == 'true'
+                ak1_last_used = row.get('access_key_1_last_used_date')
+
+                # Check Access Key 2
+                ak2_active = row.get('access_key_2_active') == 'true'
+                ak2_last_used = row.get('access_key_2_last_used_date')
+
+                issues = []
+                
+                # Check Password
+                if password_enabled and password_last_used != 'no_information':
+                    try:
+                        last_used_dt = parse(password_last_used)
+                        if (now - last_used_dt).days > cutoff_days:
+                            issues.append(f"Password unused for {(now - last_used_dt).days} days")
+                    except: pass
+                elif password_enabled and password_last_used == 'no_information':
+                     # If enabled but never used? technically unused.
+                     pass
+
+                # Check Keys
+                if ak1_active and ak1_last_used != 'N/A':
+                    try:
+                        last_used_dt = parse(ak1_last_used)
+                        if (now - last_used_dt).days > cutoff_days:
+                             issues.append(f"Access Key 1 unused for {(now - last_used_dt).days} days")
+                    except: pass
+                
+                if ak2_active and ak2_last_used != 'N/A':
+                     try:
+                        last_used_dt = parse(ak2_last_used)
+                        if (now - last_used_dt).days > cutoff_days:
+                             issues.append(f"Access Key 2 unused for {(now - last_used_dt).days} days")
+                     except: pass
+                
+                if issues:
+                    unused_users.append({
+                        "user": user,
+                        "issues": issues
+                    })
+
+            status = FindingStatus.FAIL if unused_users else FindingStatus.PASS
+            evidence = {
+                "unused_stats": f"{len(unused_users)} users with unused credentials",
+                "details": unused_users[:10] # Cap evidence size
+            }
+
+            return self.build_finding(
+                check_id="check_iam_unused_creds",
+                status=status,
+                resource_id="iam-users",
+                resource_type="AWS::IAM::User",
+                evidence=evidence
+            )
+            
+        except Exception as e:
+            logger.warning(f"Failed check 1.16: {e}")
             return None

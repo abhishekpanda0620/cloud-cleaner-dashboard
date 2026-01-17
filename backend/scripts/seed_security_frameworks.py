@@ -45,6 +45,9 @@ async def seed_security_data():
             ("4.4", "Default Security Group restricts all traffic", "Ensure the default security group of every VPC restricts all traffic."),
             ("4.3", "Log metric filter and alarm for root usage", "Ensure a log metric filter and alarm exist for usage of 'root' account."),
             ("5.1", "NACLs no ingress 0.0.0.0/0 to remote admin", "Ensure Network ACLs do not allow ingress from 0.0.0.0/0 to remote server administration ports."),
+            ("3.5", "Enable VPC Flow Logs", "Ensure VPC Flow Logs are enabled for all VPCs."),
+            ("1.16", "Unused IAM Credentials", "Ensure credentials unused for 45 days or greater are disabled."),
+            ("3.6", "S3 Bucket Access Logging", "Ensure S3 bucket access logging is enabled on the CloudTrail S3 bucket."),
         ]
 
         print(f"Seeding {len(controls_data)} controls...")
@@ -72,6 +75,9 @@ async def seed_security_data():
             ("check_sg_open_ports", "cis_4.1", "Check Open Ports", "Restrict 0.0.0.0/0 on port 22/3389.", "Critical"),
             ("check_default_sg_restricted", "cis_4.4", "Check Default SG", "Remove rules from default SG.", "High"),
             ("check_root_usage_alarm", "cis_4.3", "Root Usage Alarm", "Create metric filter/alarm for Root usage.", "Medium"),
+            ("check_vpc_flow_logs", "cis_3.5", "VPC Flow Logs", "Ensure VPC Flow Logs are enabled for all VPCs.", "Medium"),
+            ("check_iam_unused_creds", "cis_1.16", "Unused IAM Credentials", "Ensure credentials unused for 45+ days are disabled.", "Medium"),
+            ("check_s3_logging", "cis_3.6", "S3 Bucket Logging", "Ensure S3 bucket access logging is enabled.", "Medium"),
         ]
 
         print(f"Seeding {len(checks_data)} check definitions...")

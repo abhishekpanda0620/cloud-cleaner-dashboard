@@ -22,6 +22,9 @@ class S3SecurityScanner(SecurityScannerBase):
             # CIS 3.2 Ensure Server-Side Encryption is enabled for all S3 buckets
             findings.extend(self._check_bucket_encryption(s3_client))
             
+            # CIS 3.6 Ensure S3 bucket access logging is enabled
+            findings.extend(self._check_bucket_logging(s3_client))
+            
         except Exception as e:
             logger.error(f"Error running S3 security checks: {e}")
             
@@ -32,12 +35,6 @@ class S3SecurityScanner(SecurityScannerBase):
         CIS 3.1: Ensure S3 Block Public Access is enabled at the account level.
         """
         try:
-            # get_public_access_block is an account-level call (no bucket needed)
-            # But boto3 s3 client methods usually require bucket, except specific control plane ones.
-            # Actually, this is 's3control' client usually for account level?
-            # Or use s3.get_public_access_block(Bucket='...') is for BUCKET level.
-            # Account level is via s3control.
-            
             s3control = self.session.client('s3control', region_name=self.region)
             
             response = s3control.get_public_access_block(AccountId=self.account_id)
@@ -76,6 +73,7 @@ class S3SecurityScanner(SecurityScannerBase):
                     resource_type="AWS::S3::Account",
                     evidence={"error": "No Public Access Block configuration found"}
                 )
+            return None
 
     def _check_bucket_encryption(self, client) -> List[Dict[str, Any]]:
         """
@@ -102,9 +100,6 @@ class S3SecurityScanner(SecurityScannerBase):
                             break
                     
                     if is_encrypted:
-                         # Pass - we can log it or just skip to reduce noise (only show failures?)
-                         # For now, let's just log failures to keep finding count manageable if many buckets exist.
-                         # Or we can return PASS findings for score calculation.
                          findings.append(self.build_finding(
                             check_id="check_s3_encryption",
                             status=FindingStatus.PASS,
@@ -129,4 +124,44 @@ class S3SecurityScanner(SecurityScannerBase):
         except Exception as e:
             logger.warning(f"Failed check 3.2: {e}")
             
+        return findings
+
+    def _check_bucket_logging(self, client) -> List[Dict[str, Any]]:
+        """
+        CIS 3.6: Ensure S3 bucket access logging is enabled.
+        """
+        findings = []
+        try:
+            response = client.list_buckets()
+            buckets = response.get('Buckets', [])
+
+            for bucket in buckets:
+                name = bucket['Name']
+                try:
+                    logging_resp = client.get_bucket_logging(Bucket=name)
+                    logging_enabled = 'LoggingEnabled' in logging_resp
+                    
+                    if logging_enabled:
+                         findings.append(self.build_finding(
+                            check_id="check_s3_logging",
+                            status=FindingStatus.PASS,
+                            resource_id=name,
+                            resource_type="AWS::S3::Bucket",
+                            evidence={"target_bucket": logging_resp['LoggingEnabled']['TargetBucket']}
+                        ))
+                    else:
+                        findings.append(self.build_finding(
+                            check_id="check_s3_logging",
+                            status=FindingStatus.FAIL,
+                            resource_id=name,
+                            resource_type="AWS::S3::Bucket",
+                            evidence={"error": "Access logging not enabled"}
+                        ))
+
+                except Exception as e:
+                    logger.debug(f"Could not check logging for {name}: {e}")
+
+        except Exception as e:
+             logger.warning(f"Failed check 3.6: {e}")
+        
         return findings

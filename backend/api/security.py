@@ -2,6 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from typing import List, Dict, Any
+import csv
+import io
+from fastapi.responses import StreamingResponse
 
 from models import get_db
 from models.security import SecurityFinding, SecurityCheck, SecurityControl
@@ -82,3 +85,41 @@ async def get_security_stats(
         "total": (pass_count or 0) + (fail_count or 0),
         "score": round((pass_count / ((pass_count + fail_count) or 1)) * 100)
     }
+
+@router.get("/export")
+async def export_findings(
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Export all security findings as CSV.
+    """
+    # Join finding with check to get metadata
+    stmt = select(SecurityFinding, SecurityCheck).join(SecurityCheck, SecurityFinding.check_id == SecurityCheck.id)
+    result = await db.execute(stmt)
+    
+    # Prepare CSV
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Header
+    writer.writerow(["Check ID", "Check Name", "Severity", "Status", "Resource ID", "Resource Type", "Region", "Evidence"])
+    
+    for finding, check in result:
+        writer.writerow([
+            finding.check_id,
+            check.name,
+            check.severity,
+            finding.status,
+            finding.resource_id,
+            finding.resource_type,
+            finding.region,
+            str(finding.evidence)
+        ])
+    
+    output.seek(0)
+    
+    return StreamingResponse(
+        io.BytesIO(output.getvalue().encode()),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=security_findings_report.csv"}
+    )
