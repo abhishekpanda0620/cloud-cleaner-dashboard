@@ -1,4 +1,5 @@
-import { Search, ListFilter, ArrowUpDown } from 'lucide-react';
+import { Search, ListFilter, AlertTriangle } from 'lucide-react';
+import { Select } from '@/components/ui/Select';
 
 interface SecurityToolbarProps {
   searchQuery: string;
@@ -6,7 +7,8 @@ interface SecurityToolbarProps {
   resultCount: number;
   statusFilter: 'ALL' | 'PASS' | 'FAIL';
   onFilterChange: (value: 'ALL' | 'PASS' | 'FAIL') => void;
-  onSortToggle: () => void;
+  severityFilter: 'ALL' | 'Critical' | 'High' | 'Medium' | 'Low';
+  onSeverityFilterChange: (value: 'ALL' | 'Critical' | 'High' | 'Medium' | 'Low') => void;
 }
 
 export function SecurityToolbar({
@@ -15,7 +17,8 @@ export function SecurityToolbar({
   resultCount,
   statusFilter,
   onFilterChange,
-  onSortToggle
+  severityFilter,
+  onSeverityFilterChange
 }: SecurityToolbarProps) {
   return (
     <div className="px-6 py-4 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center bg-slate-50 shrink-0 gap-4">
@@ -34,29 +37,35 @@ export function SecurityToolbar({
       </div>
 
       <div className="flex items-center gap-3">
-        {/* Status Filter */}
-        <div className="flex items-center gap-2">
-          <ListFilter className="w-4 h-4 text-slate-400" />
-          <select 
-            value={statusFilter}
-            onChange={(e) => onFilterChange(e.target.value as 'ALL' | 'PASS' | 'FAIL')}
-            className="text-sm border border-slate-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-          >
-            <option value="ALL">All Status</option>
-            <option value="FAIL">Failing</option>
-            <option value="PASS">Passing</option>
-          </select>
+        {/* Severity Filter */}
+        <div className="w-40">
+           <Select
+             value={severityFilter}
+             onChange={(val) => onSeverityFilterChange(val as any)}
+             icon={<AlertTriangle className="w-4 h-4" />}
+             options={[
+               { value: 'ALL', label: 'All Severities' },
+               { value: 'Critical', label: 'Critical' },
+               { value: 'High', label: 'High' },
+               { value: 'Medium', label: 'Medium' },
+               { value: 'Low', label: 'Low' }
+             ]}
+           />
         </div>
 
-        {/* Sort Toggle */}
-        <button 
-          onClick={onSortToggle}
-          className="flex items-center gap-2 px-3 py-1.5 border border-slate-300 rounded-lg text-sm bg-white hover:bg-slate-50 transition-colors"
-          title="Sort by Severity"
-        >
-          <ArrowUpDown className="w-4 h-4 text-slate-500" />
-          <span className="text-slate-700">Severity</span>
-        </button>
+        {/* Status Filter */}
+        <div className="w-40">
+           <Select
+             value={statusFilter}
+             onChange={(val) => onFilterChange(val as 'ALL' | 'PASS' | 'FAIL')}
+             icon={<ListFilter className="w-4 h-4" />}
+             options={[
+               { value: 'ALL', label: 'All Status' },
+               { value: 'FAIL', label: 'Failing' },
+               { value: 'PASS', label: 'Passing' }
+             ]}
+           />
+        </div>
 
         <div className="text-xs text-slate-500 ml-2">
           {resultCount} results

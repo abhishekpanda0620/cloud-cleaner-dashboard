@@ -44,8 +44,9 @@ export function useSecurityFindings() {
   // Hook for filtering/sorting
   const useFilteredFindings = (
     searchQuery: string, 
-    statusFilter: 'ALL' | 'PASS' | 'FAIL', 
-    sortOrder: 'severity_desc' | 'severity_asc'
+    statusFilter: 'ALL' | 'PASS' | 'FAIL',
+    severityFilter: 'ALL' | 'Critical' | 'High' | 'Medium' | 'Low',
+    sortConfig: { key: string, direction: 'asc' | 'desc' }
   ) => {
     return useMemo(() => {
         let result = findings.filter(f => {
@@ -56,25 +57,34 @@ export function useSecurityFindings() {
             f.check_id.toLowerCase().includes(searchQuery.toLowerCase());
            
            const matchesStatus = statusFilter === 'ALL' || f.status === statusFilter;
+           const matchesSeverity = severityFilter === 'ALL' || f.severity === severityFilter;
            
-           return matchesSearch && matchesStatus;
+           return matchesSearch && matchesStatus && matchesSeverity;
         });
     
         const severityWeight = { 'Critical': 4, 'High': 3, 'Medium': 2, 'Low': 1 };
         
         result.sort((a, b) => {
-            const weightA = severityWeight[a.severity as keyof typeof severityWeight] || 0;
-            const weightB = severityWeight[b.severity as keyof typeof severityWeight] || 0;
+            let valA: any = a[sortConfig.key as keyof SecurityFinding];
+            let valB: any = b[sortConfig.key as keyof SecurityFinding];
             
-            if (sortOrder === 'severity_desc') {
-                return weightB - weightA;
-            } else {
-                return weightA - weightB;
+            // Custom sort logic for specific columns
+            if (sortConfig.key === 'severity') {
+                 valA = severityWeight[a.severity as keyof typeof severityWeight] || 0;
+                 valB = severityWeight[b.severity as keyof typeof severityWeight] || 0;
             }
+            
+            if (valA < valB) {
+                return sortConfig.direction === 'asc' ? -1 : 1;
+            }
+            if (valA > valB) {
+                return sortConfig.direction === 'asc' ? 1 : -1;
+            }
+            return 0;
         });
     
         return result;
-      }, [findings, searchQuery, statusFilter, sortOrder]);
+      }, [findings, searchQuery, statusFilter, severityFilter, sortConfig]);
   };
 
   return {

@@ -15,12 +15,20 @@ export default function SecurityPage() {
   // UI State
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PASS' | 'FAIL'>('ALL');
-  const [sortOrder, setSortOrder] = useState<'severity_desc' | 'severity_asc'>('severity_desc');
+  const [severityFilter, setSeverityFilter] = useState<'ALL' | 'Critical' | 'High' | 'Medium' | 'Low'>('ALL');
+  const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' }>({ key: 'severity', direction: 'desc' });
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedFinding, setSelectedFinding] = useState<SecurityFinding | null>(null);
   const itemsPerPage = 10;
 
-  const filteredFindings = useFilteredFindings(searchQuery, statusFilter, sortOrder);
+  const filteredFindings = useFilteredFindings(searchQuery, statusFilter, severityFilter, sortConfig);
+
+  const handleSort = (key: string) => {
+    setSortConfig(current => ({
+      key,
+      direction: current.key === key && current.direction === 'desc' ? 'asc' : 'desc'
+    }));
+  };
 
   const totalPages = Math.ceil(filteredFindings.length / itemsPerPage);
   const currentFindings = filteredFindings.slice(
@@ -104,7 +112,8 @@ export default function SecurityPage() {
                 resultCount={filteredFindings.length}
                 statusFilter={statusFilter}
                 onFilterChange={setStatusFilter}
-                onSortToggle={() => setSortOrder(prev => prev === 'severity_desc' ? 'severity_asc' : 'severity_desc')}
+                severityFilter={severityFilter}
+                onSeverityFilterChange={setSeverityFilter}
             />
             
             {/* Table */}
@@ -113,6 +122,8 @@ export default function SecurityPage() {
                 loading={loading}
                 onViewDetails={setSelectedFinding}
                 emptyMessage={searchQuery ? 'No matching findings found.' : 'No findings yet. Click "Run New Scan".'}
+                sortConfig={sortConfig}
+                onSort={handleSort}
             />
 
             {/* Pagination */}

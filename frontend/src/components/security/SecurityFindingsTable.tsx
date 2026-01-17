@@ -7,9 +7,11 @@ interface SecurityFindingsTableProps {
   loading: boolean;
   onViewDetails: (finding: SecurityFinding) => void;
   emptyMessage?: string;
+  sortConfig: { key: string, direction: 'asc' | 'desc' };
+  onSort: (key: string) => void;
 }
 
-export function SecurityFindingsTable({ findings, loading, onViewDetails, emptyMessage }: SecurityFindingsTableProps) {
+export function SecurityFindingsTable({ findings, loading, onViewDetails, emptyMessage, sortConfig, onSort }: SecurityFindingsTableProps) {
   
   const getSeverityColor = (severity: string) => {
     switch(severity) {
@@ -21,14 +23,35 @@ export function SecurityFindingsTable({ findings, loading, onViewDetails, emptyM
     }
   };
 
+  const SortIcon = ({ column }: { column: string }) => {
+    if (!sortConfig || sortConfig.key !== column) return <div className="w-3" />;
+    return <span className="ml-1 text-xs">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>;
+  };
+
   return (
     <div className="flex-1 overflow-y-auto">
       <table className="w-full text-sm text-left">
         <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200 sticky top-0 z-10">
           <tr>
-            <th className="px-6 py-3 bg-slate-50">Status</th>
+            <th 
+                className="px-6 py-3 bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                onClick={() => onSort('status')}
+            >
+                <div className="flex items-center">
+                    Status
+                    <SortIcon column="status" />
+                </div>
+            </th>
             <th className="px-6 py-3 bg-slate-50">Control / Check</th>
-            <th className="px-6 py-3 bg-slate-50">Severity</th>
+            <th 
+                className="px-6 py-3 bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                onClick={() => onSort('severity')}
+            >
+                <div className="flex items-center">
+                    Severity
+                    <SortIcon column="severity" />
+                </div>
+            </th>
             <th className="px-6 py-3 bg-slate-50">Resource</th>
             <th className="px-6 py-3 bg-slate-50 text-right">Actions</th>
           </tr>
