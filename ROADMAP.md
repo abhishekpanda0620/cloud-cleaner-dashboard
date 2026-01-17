@@ -91,7 +91,7 @@ This document outlines the planned features and improvements for the Cloud Clean
 
 ---
 
-## Version 0.5.1 - Security & Compliance ✅ COMPLETE
+## Version 0.6.0 - Security & Compliance ✅ COMPLETE
 **Focus**: Integrated CIS AWS Foundations Benchmark scanning and reporting
 
 ### ✅ Backend
@@ -113,7 +113,7 @@ This document outlines the planned features and improvements for the Cloud Clean
 ---
 
 
-## Version 0.6.0 - Resource Tagging & Bulk Operations
+## Version 0.7.0 - Resource Tagging & Bulk Operations
 **Focus**: Enhanced resource management and organization (Deferred from v0.5.0)
 
 ### 🎯 High Priority
@@ -142,7 +142,7 @@ This document outlines the planned features and improvements for the Cloud Clean
 
 ---
 
-## Version 0.7.0 - CloudWatch Integration & Monitoring
+## Version 0.8.0 - CloudWatch Integration & Monitoring
 **Focus**: Deep AWS integration and advanced monitoring
 
 ### 🎯 High Priority
@@ -172,7 +172,7 @@ This document outlines the planned features and improvements for the Cloud Clean
 
 ---
 
-## Version 0.8.0 - Multi-Cloud Support
+## Version 0.9.0 - Multi-Cloud Support
 **Focus**: Expand beyond AWS to support multiple cloud providers
 
 ### 🎯 High Priority
@@ -218,7 +218,7 @@ This document outlines the planned features and improvements for the Cloud Clean
 
 ---
 
-## Version 0.9.0 - Multi-Account & Advanced Notifications
+## Version 1.0.0 - Multi-Account & Advanced Notifications
 **Focus**: Enterprise features and notification enhancements
 
 ### 🎯 High Priority
@@ -249,7 +249,7 @@ This document outlines the planned features and improvements for the Cloud Clean
 
 ---
 
-## Version 1.0.0 - AI/ML Features & Automation
+## Version 1.1.0 - AI/ML Features & Automation
 **Focus**: Intelligent automation and predictive capabilities
 
 ### 🎯 High Priority
@@ -279,7 +279,7 @@ This document outlines the planned features and improvements for the Cloud Clean
 
 ---
 
-## Version 1.1.0 - Performance & Scalability
+## Version 1.2.0 - Performance & Scalability
 **Focus**: Enterprise-scale performance and reliability
 
 ### 🎯 High Priority
