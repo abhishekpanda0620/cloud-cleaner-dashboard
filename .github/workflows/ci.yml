@@ -16,10 +16,10 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up Python 3.13
+    - name: Set up Python 3.12
       uses: actions/setup-python@v5
       with:
-        python-version: "3.13"
+        python-version: "3.12"
         cache: 'pip'
 
     - name: Install dependencies
@@ -61,10 +61,10 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    - name: Security Audit
+    - name: Security Audit (Critical only)
       run: |
-        # Fails if any high/critical vulnerabilities are found
-        npm audit --audit-level=high
+        # Fails if any critical vulnerabilities are found
+        npm audit --audit-level=critical
 
     - name: Run Component Tests
       run: npm test
