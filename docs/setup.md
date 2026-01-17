@@ -126,6 +126,8 @@ redis-cli ping  # Should return: PONG
 
 5. **Run the backend** (Terminal 1):
    ```bash
+   # Seed security frameworks (CIS Benchmark)
+   python scripts/seed_security_frameworks.py
    python main.py
    # OR with uvicorn:
    uvicorn main:app --reload --host 0.0.0.0 --port 8084

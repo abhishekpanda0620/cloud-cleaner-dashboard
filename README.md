@@ -26,6 +26,14 @@ A comprehensive AWS resource management dashboard for identifying and tracking u
 - **📊 CSV Export**: Export resource and cost data for external analysis
 - **🎨 Professional UI**: Stunning gradient design matching modern SaaS applications
 
+### 🛡️ Compliance & Security
+- **✅ CIS Benchmark Support**: Full implementation of CIS AWS Foundations Benchmark v1.4.0 (58 Controls)
+- **🔐 IAM Security**: Checks for root usage, MFA enforcement, password policies, and access key rotation
+- **📋 Storage Compliance**: Validates S3 bucket encryption, public access blocks, and EBS encryption
+- **📝 Logging & Auditing**: Verifies CloudTrail integration, log file validation, and VPC flow logs
+- **🚨 Proactive Monitoring**: Alerts on unauthorized API calls, console sign-in failures, and config changes
+- **🌐 Network Security**: Audits Security Groups and NACLs for unrestricted access (0.0.0.0/0)
+
 ### 📊 Dashboard & UI
 - **Real-time Dashboard**: Modern React-based frontend with live data and stunning gradients
 - **Advanced Filtering**: Search and filter resources by region, status, and metadata
@@ -159,6 +167,8 @@ cd backend
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+# Seed security frameworks (CIS Benchmark)
+python scripts/seed_security_frameworks.py
 python main.py
 
 # Celery Worker (Terminal 2)
