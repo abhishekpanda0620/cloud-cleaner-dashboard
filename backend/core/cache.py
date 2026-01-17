@@ -84,7 +84,7 @@ def cache_key(*args, **kwargs) -> str:
     }
     key_str = json.dumps(key_data, sort_keys=True, default=str)
     # Hash it to create a shorter key
-    return hashlib.md5(key_str.encode()).hexdigest()
+    return hashlib.sha256(key_str.encode()).hexdigest()
 
 
 def cached(ttl_minutes: int = 5, key_prefix: str = ""):

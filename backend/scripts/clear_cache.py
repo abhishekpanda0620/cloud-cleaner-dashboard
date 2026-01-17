@@ -29,7 +29,7 @@ def clear_app_cache():
     print(f"Clearing application in-memory cache via API at {API_URL}...")
     try:
         # We need to implement this endpoint first!
-        response = requests.post(f"{API_URL}/api/admin/clear-cache")
+        response = requests.post(f"{API_URL}/api/admin/clear-cache", timeout=10)
         if response.status_code == 200:
             print("✅ Application cache cleared successfully.")
         else:
