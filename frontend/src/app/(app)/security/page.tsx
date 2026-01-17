@@ -1,109 +1,26 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { ShieldCheck, RefreshCw, AlertTriangle, CheckCircle, XCircle, Search, ChevronLeft, ChevronRight, Eye, Download, ListFilter, ArrowUpDown } from 'lucide-react';
-import { Skeleton } from '@/components/Skeleton';
+import { useState } from 'react';
+import { ShieldCheck, RefreshCw, AlertTriangle, Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useSecurityFindings } from '@/hooks/useSecurityFindings';
+import { SecurityStatsCards } from '@/components/security/SecurityStats';
+import { SecurityToolbar } from '@/components/security/SecurityToolbar';
+import { SecurityFindingsTable } from '@/components/security/SecurityFindingsTable';
 import { FindingDetailsModal } from '@/components/FindingDetailsModal';
-
-interface Finding {
-  id: number;
-  check_id: string;
-  check_name: string;
-  severity: string;
-  status: 'PASS' | 'FAIL' | 'WARNING';
-  resource_id: string;
-  resource_type?: string; 
-  region: string;
-  evidence: any;
-  last_updated: string;
-}
-
-interface Stats {
-  pass: number;
-  fail: number;
-  total: number;
-  score: number;
-}
+import { SecurityFinding } from '@/types/security';
 
 export default function SecurityPage() {
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [findings, setFindings] = useState<Finding[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [scanning, setScanning] = useState(false);
-  
+  const { stats, findings, loading, scanning, triggerScan, useFilteredFindings, apiUrl } = useSecurityFindings();
+
   // UI State
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PASS' | 'FAIL'>('ALL');
   const [sortOrder, setSortOrder] = useState<'severity_desc' | 'severity_asc'>('severity_desc');
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedFinding, setSelectedFinding] = useState<Finding | null>(null);
+  const [selectedFinding, setSelectedFinding] = useState<SecurityFinding | null>(null);
   const itemsPerPage = 10;
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8084/api';
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const [statsRes, findingsRes] = await Promise.all([
-        fetch(`${apiUrl}/security/stats`),
-        fetch(`${apiUrl}/security/findings`)
-      ]);
-      
-      if (statsRes.ok) setStats(await statsRes.json());
-      if (findingsRes.ok) setFindings(await findingsRes.json());
-    } catch (error) {
-      console.error("Failed to fetch security data", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleScan = async () => {
-    try {
-      setScanning(true);
-      await fetch(`${apiUrl}/security/scan`, { method: 'POST' });
-      await fetchData();
-    } catch (error) {
-      console.error("Scan failed", error);
-    } finally {
-      setScanning(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  // Filter and Pagination Logic
-  const filteredFindings = useMemo(() => {
-    let result = findings.filter(f => {
-       const matchesSearch = 
-        f.check_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        f.resource_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        f.severity.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        f.check_id.toLowerCase().includes(searchQuery.toLowerCase());
-       
-       const matchesStatus = statusFilter === 'ALL' || f.status === statusFilter;
-       
-       return matchesSearch && matchesStatus;
-    });
-
-    // Sort by Severity
-    const severityWeight = { 'Critical': 4, 'High': 3, 'Medium': 2, 'Low': 1 };
-    
-    result.sort((a, b) => {
-        const weightA = severityWeight[a.severity as keyof typeof severityWeight] || 0;
-        const weightB = severityWeight[b.severity as keyof typeof severityWeight] || 0;
-        
-        if (sortOrder === 'severity_desc') {
-            return weightB - weightA;
-        } else {
-            return weightA - weightB;
-        }
-    });
-
-    return result;
-  }, [findings, searchQuery, statusFilter, sortOrder]);
+  const filteredFindings = useFilteredFindings(searchQuery, statusFilter, sortOrder);
 
   const totalPages = Math.ceil(filteredFindings.length / itemsPerPage);
   const currentFindings = filteredFindings.slice(
@@ -145,7 +62,7 @@ export default function SecurityPage() {
               Export Report
             </button>
             <button
-                onClick={handleScan}
+                onClick={triggerScan}
                 disabled={scanning}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 scanning 
@@ -164,45 +81,7 @@ export default function SecurityPage() {
       <main className="px-6 py-8 space-y-8">
         
         {/* Stats Row */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                <p className="text-sm font-medium text-slate-500 mb-1">Compliance Score</p>
-                <div className="flex items-baseline gap-2">
-                    <span className={`text-2xl font-bold ${
-                        (stats?.score || 0) >= 80 ? 'text-green-600' : 
-                        (stats?.score || 0) >= 50 ? 'text-amber-500' : 'text-red-500'
-                    }`}>
-                        {stats?.score || 0}%
-                    </span>
-                </div>
-            </div>
-            
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                <p className="text-sm font-medium text-slate-500 mb-1">Passing Checks</p>
-                <div className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span className="text-2xl font-bold text-slate-900">{stats?.pass || 0}</span>
-                </div>
-            </div>
-
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                <p className="text-sm font-medium text-slate-500 mb-1">Failing Checks</p>
-                <div className="flex items-center gap-2">
-                    <XCircle className="w-5 h-5 text-red-500" />
-                    <span className="text-2xl font-bold text-slate-900">{stats?.fail || 0}</span>
-                </div>
-            </div>
-            
-             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                <p className="text-sm font-medium text-slate-500 mb-1">Critical Issues</p>
-                <div className="flex items-center gap-2">
-                    <AlertTriangle className="w-5 h-5 text-red-600" />
-                    <span className="text-2xl font-bold text-slate-900">
-                        {findings.filter(f => f.status === 'FAIL' && f.severity === 'Critical').length}
-                    </span>
-                </div>
-            </div>
-        </div>
+        <SecurityStatsCards stats={stats} findings={findings} />
 
         {/* Disclaimer */}
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
@@ -219,156 +98,44 @@ export default function SecurityPage() {
         {/* Findings Section */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col h-[600px]">
             {/* Toolbar */}
-            <div className="px-6 py-4 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center bg-slate-50 shrink-0 gap-4">
-                <div className="flex items-center gap-4 w-full sm:w-auto">
-                    <h3 className="font-semibold text-slate-900">Findings</h3>
-                    <div className="relative flex-1 sm:flex-none">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        <input 
-                            type="text" 
-                            placeholder="Search findings..." 
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9 pr-4 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-64"
-                        />
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                     {/* Status Filter */}
-                     <div className="flex items-center gap-2">
-                        <ListFilter className="w-4 h-4 text-slate-400" />
-                        <select 
-                            value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value as any)}
-                            className="text-sm border border-slate-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                        >
-                            <option value="ALL">All Status</option>
-                            <option value="FAIL">Failing</option>
-                            <option value="PASS">Passing</option>
-                        </select>
-                     </div>
-
-                     {/* Sort Toggle */}
-                     <button 
-                        onClick={() => setSortOrder(prev => prev === 'severity_desc' ? 'severity_asc' : 'severity_desc')}
-                        className="flex items-center gap-2 px-3 py-1.5 border border-slate-300 rounded-lg text-sm bg-white hover:bg-slate-50 transition-colors"
-                        title="Sort by Severity"
-                     >
-                        <ArrowUpDown className="w-4 h-4 text-slate-500" />
-                        <span className="text-slate-700">Severity</span>
-                     </button>
-
-                    <div className="text-xs text-slate-500 ml-2">
-                        {filteredFindings.length} results
-                    </div>
-                </div>
-            </div>
+            <SecurityToolbar 
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                resultCount={filteredFindings.length}
+                statusFilter={statusFilter}
+                onFilterChange={setStatusFilter}
+                onSortToggle={() => setSortOrder(prev => prev === 'severity_desc' ? 'severity_asc' : 'severity_desc')}
+            />
             
-            {/* Scrollable Table */}
-            <div className="flex-1 overflow-y-auto">
-                <table className="w-full text-sm text-left">
-                    <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200 sticky top-0 z-10">
-                        <tr>
-                            <th className="px-6 py-3 bg-slate-50">Status</th>
-                            <th className="px-6 py-3 bg-slate-50">Control / Check</th>
-                            <th className="px-6 py-3 bg-slate-50">Severity</th>
-                            <th className="px-6 py-3 bg-slate-50">Resource</th>
-                            <th className="px-6 py-3 bg-slate-50 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                        {loading ? (
-                            Array.from({ length: 5 }).map((_, i) => (
-                                <tr key={i}>
-                                    <td className="px-6 py-4"><Skeleton className="h-6 w-16 rounded-full" /></td>
-                                    <td className="px-6 py-4">
-                                        <Skeleton className="h-5 w-48 mb-1" />
-                                        <Skeleton className="h-3 w-24" />
-                                    </td>
-                                    <td className="px-6 py-4"><Skeleton className="h-5 w-20" /></td>
-                                    <td className="px-6 py-4">
-                                        <Skeleton className="h-5 w-40 mb-1" />
-                                        <Skeleton className="h-3 w-24" />
-                                    </td>
-                                    <td className="px-6 py-4"><Skeleton className="h-8 w-8 rounded-full ml-auto" /></td>
-                                </tr>
-                            ))
-                        ) : currentFindings.length === 0 ? (
-                            <tr>
-                                <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
-                                    {searchQuery ? 'No matching findings found.' : 'No findings yet. Click "Run New Scan".'}
-                                </td>
-                            </tr>
-                        ) : (
-                            currentFindings.map((finding) => (
-                                <tr key={finding.id} className="hover:bg-slate-50 transition-colors">
-                                    <td className="px-6 py-4">
-                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                                            finding.status === 'PASS' 
-                                                ? 'bg-green-50 text-green-700 border-green-200' 
-                                                : finding.status === 'FAIL'
-                                                ? 'bg-red-50 text-red-700 border-red-200'
-                                                : 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                                        }`}>
-                                            {finding.status}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="font-medium text-slate-900">{finding.check_name}</div>
-                                        <div className="text-slate-500 text-xs mt-0.5 font-mono">{finding.check_id}</div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className={`font-medium ${
-                                            finding.severity === 'Critical' ? 'text-red-600' :
-                                            finding.severity === 'High' ? 'text-orange-600' : 'text-slate-600'
-                                        }`}>
-                                            {finding.severity}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="text-slate-900 max-w-[200px] truncate" title={finding.resource_id}>
-                                            {finding.resource_id}
-                                        </div>
-                                        <div className="text-xs text-slate-500">{finding.resource_type}</div>
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <button 
-                                            onClick={() => setSelectedFinding(finding)}
-                                            className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-500 hover:text-indigo-600"
-                                            title="View Details"
-                                        >
-                                            <Eye className="w-5 h-5" />
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
+            {/* Table */}
+            <SecurityFindingsTable 
+                findings={currentFindings}
+                loading={loading}
+                onViewDetails={setSelectedFinding}
+                emptyMessage={searchQuery ? 'No matching findings found.' : 'No findings yet. Click "Run New Scan".'}
+            />
 
-            {/* Pagination Footer */}
+            {/* Pagination */}
             {totalPages > 1 && (
                 <div className="px-6 py-3 border-t border-slate-200 bg-slate-50 shrink-0 flex items-center justify-between">
-                    <span className="text-xs text-slate-500">
+                    <div className="text-xs text-slate-500">
                         Page {currentPage} of {totalPages}
-                    </span>
+                    </div>
                     <div className="flex gap-2">
-                         <button 
-                            onClick={() => setCurrentPage(c => Math.max(1, c - 1))}
+                        <button 
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                             disabled={currentPage === 1}
-                            className="p-1 rounded hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                         >
-                            <ChevronLeft className="w-5 h-5 text-slate-600" />
-                         </button>
-                         <button 
-                            onClick={() => setCurrentPage(c => Math.min(totalPages, c + 1))}
+                            className="p-1.5 rounded hover:bg-slate-200 disabled:opacity-50"
+                        >
+                            <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        <button 
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                             disabled={currentPage === totalPages}
-                            className="p-1 rounded hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                         >
-                            <ChevronRight className="w-5 h-5 text-slate-600" />
-                         </button>
+                            className="p-1.5 rounded hover:bg-slate-200 disabled:opacity-50"
+                        >
+                            <ChevronRight className="w-4 h-4" />
+                        </button>
                     </div>
                 </div>
             )}
