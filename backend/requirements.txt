@@ -57,3 +57,9 @@ flower==2.0.1
 websockets==15.0.1
 celery-redbeat==2.2.0
 reportlab==4.2.5
+
+
+pytest==8.0.0
+pytest-asyncio==0.23.5
+pytest-cov==4.1.0
+bandit==1.7.7
