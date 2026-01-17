@@ -69,9 +69,16 @@ class CloudTrailSecurityScanner(SecurityScannerBase):
             trails = response.get('trailList', [])
             
             if not trails:
-                # No trails means this fails implicitly (or N/A, but CIS says Fail if not enabled)
-                # We can return one finding for "general" or skip. Let's fail.
-                return []
+                # If no trails exist, this check fails as you can't have validation enabled on nothing.
+                # However, CIS 2.1 would already flag "no trails".
+                # We can return valid "FAIL" finding.
+                return [self.build_finding(
+                    check_id="check_cloudtrail_validation",
+                    status=FindingStatus.FAIL,
+                    resource_id="no-trails-found",
+                    resource_type="AWS::CloudTrail::Trail",
+                    evidence={"error": "No CloudTrail trails found"}
+                )]
 
             for trail in trails:
                 arn = trail.get('TrailARN')
@@ -80,24 +87,20 @@ class CloudTrailSecurityScanner(SecurityScannerBase):
                 
                 status = FindingStatus.PASS if validation_enabled else FindingStatus.FAIL
                 
-                # Note: We don't have a specific check_id for EACH trail in our seed data, 
-                # but typically scanners generate findings per resource. 
-                # Our current DB model links finding -> check definition (1:N). 
-                # So we use the SAME check_id ("check_cloudtrail_validation") for multiple resources.
-                # Wait, we didn't seed "check_cloudtrail_validation". We only seeded "check_cloudtrail_enabled".
-                # For now, let's just stick to what we seeded or add dynamically?
-                # The user said "Only 3 found". We should expand the scanner.
-                
-                # I will reuse a generic ID or just skip if we stick strictly to seeded IDs.
-                # BUT, better to implement it and we can add the Check ID to the seed script later?
-                # Actually, let's just return it. The UI displays Check Name from DB join, 
-                # if missing it might show empty name but finding exists.
-                
-                # Let's map to "check_cloudtrail_enabled" for now or create a new ID.
-                # The prompt earlier had: check_cloudtrail_enabled (2.1).
-                # I'll stick to 2.1 for now to fix the "count" issue.
-                pass 
-                
+                evidence = {
+                   "LogFileValidationEnabled": validation_enabled,
+                   "TrailName": name,
+                   "HomeRegion": trail.get('HomeRegion')
+                }
+
+                findings.append(self.build_finding(
+                    check_id="check_cloudtrail_validation",
+                    status=status,
+                    resource_id=name,
+                    resource_type="AWS::CloudTrail::Trail",
+                    evidence=evidence
+                ))
+                 
         except Exception as e:
             logger.warning(f"Failed check 2.2: {e}")
             

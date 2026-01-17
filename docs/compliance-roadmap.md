@@ -35,38 +35,23 @@ Provide **read‑only, auditor‑safe visibility** into cloud security posture a
 
 ---
 
-## 🧱 Phase 1 – CIS AWS Foundations (Week 1–3)
+## 🧱 Phase 1 – Full CIS AWS Foundations (Week 1–4)
 
-### Why CIS?
-CIS is the **technical backbone** for SOC2, HIPAA, PCI‑DSS, GDPR, DPDP.
+### Goal
+Achieve **100% coverage** of the CIS AWS Foundations Benchmark v1.4.0 (58 Controls).
+This forms the baseline for all other frameworks (SOC2, HIPAA, GDPR).
 
-### Initial CIS Controls (MVP)
-| CIS ID | Control |
-|------|--------|
-| 1.1 | Root account access keys disabled |
-| 1.2 | MFA enabled on root account |
-| 1.3 | IAM password policy enforced |
-| 2.1 | CloudTrail enabled in all regions |
-| 2.2 | CloudTrail log file validation |
-| 3.1 | S3 Block Public Access enabled |
-| 3.2 | S3 encryption enabled |
-| 4.1 | Security groups restrict 0.0.0.0/0 |
-
-### Backend
-- New module: `services/aws/security/`
-- Implement `SecurityScannerBase`
-- Read‑only IAM permissions only
-- Store pass/fail + evidence JSON
-
-### Frontend
-- CIS compliance score
-- Control‑level pass/fail list
-- Evidence drawer per control
+### Coverage Areas
+- **Identity (IAM)**: 21 controls (Passwords, MFA, Keys, Roles)
+- **Logging**: 11 controls (CloudTrail, S3, KMS)
+- **Monitoring**: 15 controls (CloudWatch Alarms, Metrics)
+- **Networking**: 4 controls (Security Groups, NACLs, VPC)
 
 ### Deliverables
-- CIS dashboard
-- JSON evidence per control
-- % compliance score
+- Complete set of 58 automated checks
+- Detailed "Pass/Fail" evidence for each
+- CIS Compliance Scorecard
+
 
 ---
 

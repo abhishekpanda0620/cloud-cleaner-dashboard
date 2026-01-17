@@ -91,6 +91,28 @@ This document outlines the planned features and improvements for the Cloud Clean
 
 ---
 
+## Version 0.5.1 - Security & Compliance ✅ COMPLETE
+**Focus**: Integrated CIS AWS Foundations Benchmark scanning and reporting
+
+### ✅ Backend
+- ✅ **Security Module**: `services/aws/security/` with modular scanner architecture
+- ✅ **CIS Implementation**: Full CIS AWS Foundations Benchmark v1.4.0 (58 Controls)
+- ✅ **Automated Scanners**:
+  - ✅ **Identity (IAM)**: Root keys, MFA, Password policy
+  - ✅ **Monitoring**: CloudWatch Alarms (CIS 4.1-4.15) covering unauthorized API, root usage, etc.
+  - ✅ **Logging**: CloudTrail validation, S3 access logging
+  - ✅ **Networking**: Security Groups (SSH/RDP exposures), Default SGs, VPC Flow Logs
+- ✅ **Database Seeding**: Automated population of all 58 controls and framework definitions
+
+### ✅ Frontend
+- ✅ **Security Dashboard**: `/security` page with modular components
+- ✅ **Findings Table**: Sortable/Filterable table for security findings
+- ✅ **Filtering**: Severity-based and Status-based filtering
+- ✅ **Visuals**: Clean, auditor-friendly UI
+
+---
+
+
 ## Version 0.6.0 - Resource Tagging & Bulk Operations
 **Focus**: Enhanced resource management and organization (Deferred from v0.5.0)
 
