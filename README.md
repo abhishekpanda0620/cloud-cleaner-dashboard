@@ -1,6 +1,12 @@
 # Cloud Cleaner Dashboard
 
-A comprehensive AWS resource management dashboard for identifying and tracking unused cloud resources to optimize costs. Built with Python 3.13, Docker, and modern web technologies.
+![Python](https://img.shields.io/badge/Python-3.13-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-Backend-green)
+![Next.js](https://img.shields.io/badge/Next.js-Frontend-black)
+![Docker](https://img.shields.io/badge/Docker-Containerized-blue)
+![AWS](https://img.shields.io/badge/AWS-Cloud-orange)
+
+Cloud Cleaner Dashboard is a comprehensive AWS resource management dashboard for identifying and tracking unused cloud resources to optimize costs. Built with Python 3.13, Docker, and modern web technologies.
 
 ![Dashboard Preview](docs/asset/demo.gif)
 
