@@ -378,8 +378,11 @@ This roadmap is a living document and will be updated regularly based on:
 - Technical feasibility and resource availability
 - Community contributions and priorities
 
-**Last Updated**: October 30, 2025
-**Next Review**: TBD
+**Last Updated**: January 18, 2026
+**Next Review**: February 2026
+
+## Related Roadmaps
+- [🛡️ Security & Compliance Roadmap](docs/compliance-roadmap.md) - Detailed breakdown of compliance phases.
 
 ---
 
@@ -388,17 +391,6 @@ This roadmap is a living document and will be updated regularly based on:
 - **🎯 High Priority**: Critical features for the version milestone
 - **🔧 Medium Priority**: Important but not blocking features
 - **💡 Low Priority**: Nice-to-have features that may be deferred
-
-## Version Naming Convention
-
-- **0.x.x**: Pre-release versions (current)
-- **0.5.x**: Dynamic service discovery (architectural foundation)
-- **0.8.x**: Multi-cloud support introduction
-- **1.0.x**: AI/ML features and automation
-- **2.0.0**: First production-ready release (AWS mature, Azure/GCP beta)
-- **2.x.x**: Minor updates and new features
-- **3.0.0**: Full multi-cloud production release
-- **4.0.0+**: Major architectural changes or breaking updates
 
 ---
 

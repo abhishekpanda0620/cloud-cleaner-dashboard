@@ -242,27 +242,22 @@ appendfsync everysec
 
 ## Database Configuration
 
-### PostgreSQL (Optional)
+### PostgreSQL (Default & Recommended)
 
-If using PostgreSQL for enhanced storage:
+The application is optimized for PostgreSQL 17+. This is the default in Docker.
 
 ```env
 # PostgreSQL Configuration
-DATABASE_URL=postgresql://user:password@localhost:5432/cloudcleaner
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=cloudcleaner
-DB_USER=cloudcleaner
-DB_PASSWORD=secure-password
+DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/cloud_cleaner_db
 ```
 
-### SQLite (Default)
+### SQLite (Local Dev Only)
 
-Default configuration uses SQLite for simplicity:
+Can be used for quick local testing without Docker.
 
 ```env
 # SQLite Configuration
-DATABASE_URL=sqlite:///./cloudcleaner.db
+DATABASE_URL=sqlite+aiosqlite:///./cloudcleaner.db
 ```
 
 ## Caching Configuration

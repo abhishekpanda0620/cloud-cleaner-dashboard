@@ -3,10 +3,49 @@
 This document provides a comprehensive overview of all available API endpoints in the Cloud Cleaner Dashboard.
 
 ## Base URL
-- **Development**: `http://localhost:8000/api`
+- **Development**: `http://localhost:8084/api`
 - **Production**: Configure via `API_BASE_URL` environment variable
 
-## EC2 Endpoints
+## V2 Service Endpoints (Recommended)
+
+### List Discovered Services
+```http
+GET /api/v2/services
+```
+Returns list of all AWS services discovered via Cost Explorer, capable of dynamic scanning.
+
+**Response:**
+```json
+{
+  "services": [
+    {
+      "service_code": "AmazonEC2",
+      "service_name": "Amazon Elastic Compute Cloud",
+      "total_resources": 15,
+      "estimated_cost": 120.50
+    }
+  ]
+}
+```
+
+### Scan Resources (Dynamic)
+```http
+GET /api/v2/scan
+```
+Triggers a dynamic scan across all discovered services using plugin-based scanners.
+
+### List Resources (Dynamic)
+```http
+GET /api/v2/resources
+```
+Returns all resources found by the V2 scanners, grouped by service.
+
+---
+
+## Legacy Endpoints (V1)
+> **Note**: These endpoints are maintained for backward compatibility but V2 endpoints are recommended.
+
+## EC2 Endpoints (Legacy)
 
 ### Get Stopped EC2 Instances
 ```http
@@ -36,7 +75,7 @@ GET /api/ec2/all
 ```
 Returns all EC2 instances regardless of state.
 
-## EBS Endpoints
+## EBS Endpoints (Legacy)
 
 ### Get Unattached EBS Volumes
 ```http
@@ -396,6 +435,47 @@ Returns current notification channel configuration.
   "email_configured": true,
   "slack_webhook_url": "https://hooks.slack.com/...",
   "email_recipients": ["admin@company.com"]
+}
+```
+
+## Security Endpoints
+
+### Get Security Findings
+```http
+GET /api/security/params
+```
+Returns list of security findings filtered by severity or status.
+
+**Parameters:**
+- `severity` (optional): Filter by severity (Critical, High, Medium, Low)
+- `status` (optional): Filter by status (PASS, FAIL)
+
+**Response:**
+```json
+{
+  "findings": [
+    {
+      "check_id": "cis_1.1",
+      "severity": "Critical",
+      "status": "FAIL",
+      "resource_id": "root_account",
+      "message": "Root account has active access keys"
+    }
+  ]
+}
+```
+
+### Trigger Security Scan
+```http
+POST /api/security/scan
+```
+Triggers an immediate security scan for all CIS controls.
+
+**Response:**
+```json
+{
+  "message": "Security scan started",
+  "scan_id": "scan-12345"
 }
 ```
 

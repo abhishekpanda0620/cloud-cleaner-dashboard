@@ -11,16 +11,39 @@ This guide walks you through using all the features of the Cloud Cleaner Dashboa
 3. **View statistics**: You'll see summary cards showing resource counts
 
 ## Main Dashboard Overview
-
-### Statistics Cards
-
-The dashboard displays summary cards for each resource type:
-
-- **🖥️ EC2 Instances**: Count of stopped instances across all regions
-- **💾 EBS Volumes**: Count of unattached volumes across all regions  
-- **🪣 S3 Buckets**: Count of unused buckets (global)
-- **👥 IAM Users**: Count of inactive users (global)
-- **🔑 Access Keys**: Count of unused keys with security risk indicators
+ 
+ ### Statistics Cards
+ 
+ The dashboard displays summary cards for each resource type:
+ 
+ - **🖥️ EC2 Instances**: Count of stopped instances across all regions
+ - **💾 EBS Volumes**: Count of unattached volumes across all regions  
+ - **🪣 S3 Buckets**: Count of unused buckets (global)
+ - **👥 IAM Users**: Count of inactive users (global)
+ - **🔑 Access Keys**: Count of unused keys with security risk indicators
+ 
+ ## 🛡️ Security & Compliance
+ 
+ The Security dashboard provides a dedicated view for auditing your AWS environment against the **CIS AWS Foundations Benchmark v1.4.0**.
+ 
+ ### Accessing Security Dashboard
+ 
+ 1. Click on the **Security** tab in the top navigation bar.
+ 2. View the **Compliance Score** and **Critical Findings** summary.
+ 
+ ### Security Findings
+ 
+ The dashboard scans for 58 different controls across Identity, Storage, Logging, Monitoring, and Networking.
+ 
+ #### Filtering Findings
+ - **By Severity**: Filter findings by Critical, High, Medium, or Low severity.
+ - **By Status**: Toggle between Passed and Failed checks to focus on remediation.
+ 
+ #### Remediation
+ Each failed finding provides:
+ - **Control ID**: The specific CIS control (e.g., CIS 1.1).
+ - **Description**: What specifically failed (e.g., "Root account has active access keys").
+ - **Remediation Steps**: Instructions on how to fix the issue in the AWS Console.
 
 ### Resource Tabs
 
@@ -176,7 +199,10 @@ The Schedule Settings component allows you to automate resource monitoring:
 ## Navigation and UI
 
 ### Navigation Structure
+### Navigation Structure
 - **Dashboard**: Main resource overview and monitoring
+- **Cost Analysis**: Cost estimation and savings Reports
+- **Security**: CIS compliance auditing and security findings
 - **Settings**: Configuration and preferences
 
 ### Responsive Design
