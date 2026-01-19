@@ -17,6 +17,7 @@ from models.service import AWSService
 from models.resource import Resource
 from models.cost_history import CostHistory
 from models.scan_history import ScanHistory
+from models.cost_limit import CostLimit
 from core.config import settings
 
 # this is the Alembic Config object, which provides
