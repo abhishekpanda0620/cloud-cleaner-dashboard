@@ -113,32 +113,25 @@ This document outlines the planned features and improvements for the Cloud Clean
 ---
 
 
-## Version 0.7.0 - Resource Tagging & Bulk Operations
-**Focus**: Enhanced resource management and organization (Deferred from v0.5.0)
+## Version 0.7.0 - Governance & Lifecycle Automation
+**Focus**: Active resource management, compliance policies, and financial governance
 
 ### 🎯 High Priority
 
-#### Resource Tagging Support
-- **Tag-based Filtering**: Filter resources by AWS tags
-- **Tag Management**: Add, edit, and remove tags from dashboard
-- **Tag-based Policies**: Create rules based on resource tags
-- **Tag Compliance**: Monitor tag compliance across resources
-- **Tag Recommendations**: Suggest tags based on resource patterns
+#### Financial Governance
+- **Native Budget Support**: Create "Soft Budgets" within the dashboard (for users without AWS Budget access)
+- **Budget Integration**: Seamless UI link between "Budget Alarm" and "Resource Cleanup"
+- **Budget Alerts**: In-app notifications when local budget thresholds are breached
 
-#### Bulk Operations
-- **Multi-select**: Select multiple resources for batch operations
-- **Bulk Delete**: Delete multiple resources at once
-- **Bulk Tag**: Apply tags to multiple resources
-- **Bulk Export**: Export selected resources to CSV/PDF
-- **Operation History**: Track bulk operation results
+#### Resource Governance
+- **Tag Compliance**: Visual flags for resources missing required tags (e.g., `Owner`, `Project`)
+- **Bulk Tagging**: Select multiple resources -> Apply tags in one click
+- **Tag-based Filtering**: Enhanced filtering by AWS tags
 
-### 🔧 Medium Priority
-
-#### Resource Lifecycle Management
-- **Snapshot Management**: Create and manage EBS snapshots before deletion
-- **Resource Archival**: Archive resources before deletion
-- **Rollback Capability**: Restore recently deleted resources
-- **Deletion Policies**: Define automated deletion rules
+#### Lifecycle Automation (TTL)
+- **Resource Expiry**: Set `TerminationDate` on resources (Time-To-Live)
+- **Scheduled Cleanup**: Background worker to terminate expired resources automatically
+- **Expiration Alerts**: Notifications for upcoming resource deletions
 
 ---
 
