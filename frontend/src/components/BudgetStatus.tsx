@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, CheckCircle2, AlertOctagon, TrendingDown } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, AlertOctagon, TrendingDown, Settings, Plus } from 'lucide-react';
+import BudgetConfigModal from './BudgetConfigModal';
 
 interface Budget {
     name: string;
@@ -10,44 +11,64 @@ interface Budget {
     status: 'OK' | 'WARNING' | 'ALARM';
     time_period_start: string;
     time_period_end: string;
+    type?: 'AWS' | 'NATIVE';
 }
 
 const BudgetStatus: React.FC = () => {
     const [budgets, setBudgets] = useState<Budget[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8084/api';
 
-    useEffect(() => {
-        const fetchBudgets = async () => {
-            try {
-                const response = await fetch(`${apiUrl}/budgets`);
-                if (response.ok) {
-                    const data = await response.json();
-                    setBudgets(data);
-                }
-            } catch (error) {
-                console.error("Error fetching budgets:", error);
-            } finally {
-                setLoading(false);
+    const fetchBudgets = async () => {
+        try {
+            const response = await fetch(`${apiUrl}/budgets`);
+            if (response.ok) {
+                const data = await response.json();
+                setBudgets(data);
             }
-        };
+        } catch (error) {
+            console.error("Error fetching budgets:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
+    useEffect(() => {
         fetchBudgets();
     }, [apiUrl]);
 
     if (loading) return <div className="h-40 bg-slate-50 border border-slate-200 rounded-lg animate-pulse"></div>;
     
+    // Check if we have a native budget to pre-fill the modal
+    const nativeBudget = budgets.find(b => b.type === 'NATIVE');
+    const hasAwsBudgets = budgets.some(b => b.type === 'AWS');
+
     if (budgets.length === 0) {
         return (
-            <div className="bg-white rounded-lg border border-slate-200 p-6 flex flex-col items-center justify-center text-center">
-                <div className="p-3 bg-slate-50 rounded-full mb-3">
-                    <TrendingDown className="w-5 h-5 text-slate-400" />
+            <>
+                <div className="bg-white rounded-lg border border-slate-200 p-6 flex flex-col items-center justify-center text-center">
+                    <div className="p-3 bg-slate-50 rounded-full mb-3">
+                        <TrendingDown className="w-5 h-5 text-slate-400" />
+                    </div>
+                    <h3 className="text-sm font-semibold text-slate-900">No Budgets Configured</h3>
+                    <p className="text-xs text-slate-500 mt-1 max-w-xs mb-4">
+                        Set a monthly spending limit to get alerts when you're over budget.
+                    </p>
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
+                    >
+                        <Plus className="w-3 h-3" />
+                        Set Monthly Budget
+                    </button>
                 </div>
-                <h3 className="text-sm font-semibold text-slate-900">No Budgets Configured</h3>
-                <p className="text-xs text-slate-500 mt-1 max-w-xs">
-                    Set up budgets in your AWS console to track spending against limits here.
-                </p>
-            </div>
+                <BudgetConfigModal 
+                    isOpen={isModalOpen} 
+                    onClose={() => setIsModalOpen(false)} 
+                    onSave={fetchBudgets}
+                />
+            </>
         );
     }
 
@@ -58,9 +79,21 @@ const BudgetStatus: React.FC = () => {
                     <TrendingDown className="w-4 h-4 text-slate-500" />
                     Budget Status
                 </h2>
-                <span className="bg-slate-100 text-slate-600 text-[10px] font-medium px-2 py-0.5 rounded-full border border-slate-200">
-                    {budgets.length} Active
-                </span>
+                <div className="flex items-center gap-2">
+                    <span className="bg-slate-100 text-slate-600 text-[10px] font-medium px-2 py-0.5 rounded-full border border-slate-200">
+                        {budgets.length} Active
+                    </span>
+                    {/* Only allow configuring if using Native budgets or if we want to override */}
+                    {!hasAwsBudgets && (
+                        <button 
+                            onClick={() => setIsModalOpen(true)}
+                            className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+                            title="Configure Budget"
+                        >
+                            <Settings className="w-3.5 h-3.5" />
+                        </button>
+                    )}
+                </div>
             </div>
             
             <div className="space-y-5">
@@ -89,9 +122,17 @@ const BudgetStatus: React.FC = () => {
                                     <div className="flex items-center gap-1.5">
                                         <h3 className="text-sm font-medium text-slate-900">{budget.name}</h3>
                                         {isAlarm && <AlertOctagon className="w-3 h-3 text-red-500" />}
+                                        {budget.type === 'NATIVE' && (
+                                            <span className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200">
+                                                NATIVE
+                                            </span>
+                                        )}
                                     </div>
                                     <p className="text-[10px] text-slate-400 font-mono mt-0.5">
-                                        {new Date(budget.time_period_start).toLocaleDateString()} - {new Date(budget.time_period_end).toLocaleDateString()}
+                                        {budget.time_period_start && new Date(budget.time_period_start).toLocaleDateString()} 
+                                        {budget.time_period_end && budget.time_period_end !== 'N/A' 
+                                            ? ` - ${new Date(budget.time_period_end).toLocaleDateString()}` 
+                                            : ' (Recurring)'}
                                     </p>
                                 </div>
                                 <div className="text-right">
@@ -122,6 +163,13 @@ const BudgetStatus: React.FC = () => {
                     );
                 })}
             </div>
+            
+            <BudgetConfigModal 
+                isOpen={isModalOpen} 
+                onClose={() => setIsModalOpen(false)} 
+                onSave={fetchBudgets}
+                currentLimit={nativeBudget?.limit}
+            />
         </div>
     );
 };
