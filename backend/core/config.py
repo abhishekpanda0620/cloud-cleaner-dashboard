@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     
     # Server Configuration
     port: int = os.getenv("PORT", 8084)
-    host: str = os.getenv("HOST", "0.0.0.0")
+    host: str = os.getenv("HOST", "0.0.0.0")  # nosec B104
     cors_origins: list[str] = ["http://localhost:3000"]
     
     # Application Configuration

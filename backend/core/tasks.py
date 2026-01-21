@@ -125,7 +125,7 @@ def send_budget_alert_task(alert_level, current_spend, limit_amount, currency, s
                 "text": f"🚨 *Budget Alert: {alert_level}*\nCurrent Spend: ${current_spend:.2f}\nLimit: ${limit_amount:.2f} {currency}"
             }
             try:
-                requests.post(slack_webhook, json=message)
+                requests.post(slack_webhook, json=message, timeout=10)
                 logging.info("Sent Slack budget alert")
             except Exception as e:
                 logging.error(f"Failed to send Slack alert: {e}")
