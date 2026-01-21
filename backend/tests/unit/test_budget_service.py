@@ -1,7 +1,7 @@
 
 import pytest
 from unittest.mock import MagicMock, AsyncMock, patch
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from services.budget_service import BudgetService
 from models.cost_limit import CostLimit
 
@@ -15,7 +15,7 @@ MOCK_AWS_BUDGETS = [{
 
 @pytest.fixture
 def mock_db():
-    return MagicMock(spec=Session)
+    return AsyncMock(spec=AsyncSession)
 
 @pytest.fixture
 def mock_cost_explorer():
@@ -62,7 +62,7 @@ async def test_get_budgets_native_fallback(budget_service):
 @pytest.mark.asyncio
 async def test_set_limit(budget_service):
     """Test setting a new local limit"""
-    budget_service.set_limit(150.0)
+    await budget_service.set_limit(150.0)
     
     # Should verify delete was called
     # Should verify add was called with new limit
