@@ -34,10 +34,17 @@ class BudgetService:
     def _get_aws_budgets(self) -> List[Dict[str, Any]]:
         """Fetch budgets directly from AWS Budgets API (Sync Boto3)"""
         try:
-            if not settings.aws_account_id:
-                return []
-
             factory = get_aws_client_factory()
+            
+            # Ensure we have Account ID
+            if not settings.aws_account_id:
+                try:
+                    sts = factory.get_client('sts')
+                    settings.aws_account_id = sts.get_caller_identity()['Account']
+                except Exception as e:
+                    logger.warning(f"Could not determine AWS Account ID: {e}")
+                    return []
+
             client = factory.get_client('budgets')
             
             response = client.describe_budgets(AccountId=settings.aws_account_id)
@@ -102,6 +109,101 @@ class BudgetService:
         except Exception as e:
             logger.error(f"Error calculating native budget: {e}")
             return []
+
+    async def check_and_send_alerts(self) -> Dict[str, Any]:
+        """
+        Check all budgets (Native + AWS) and trigger alerts if thresholds are exceeded.
+        """
+        from core.tasks import send_budget_alert_task
+        from core.cache import get_redis_client
+        import json
+        
+        alerts_sent = 0
+        redis_client = get_redis_client()
+        
+        # 1. Fetch ALL budgets
+        all_budgets = await self.get_budgets()
+        
+        for budget in all_budgets:
+            status = budget.get('status', 'OK')
+            percent = budget.get('percent_used', 0)
+            budget_name = budget.get('name', 'Unknown Budget')
+            budget_type = budget.get('type', 'UNKNOWN')
+            
+            should_alert = False
+            alert_level = "OK"
+            
+            # Key for tracking state: budget:alert:{type}:{name}
+            state_key = f"budget:alert:{budget_type}:{budget_name}"
+            
+            # Get previous state
+            if budget_type == 'NATIVE':
+                # For Native, we still prefer DB as source of truth for state to persist across restarts better,
+                # but we can use the loop here.
+                # Re-fetch native limit to write back logic? 
+                # To keep it simple: We delegated native logic to DB in previous code.
+                # Let's handle Native specifically to update DB.
+                stmt = select(CostLimit).order_by(CostLimit.id.desc()).limit(1)
+                result = await self.db.execute(stmt)
+                cost_limit = result.scalar_one_or_none()
+                if not cost_limit: continue
+                
+                prev_level = cost_limit.current_alert_level
+            else:
+                # AWS Budget - Use Redis
+                cached_state = redis_client.get(state_key)
+                prev_level = cached_state.decode('utf-8') if cached_state else "OK"
+
+            # Determine if we should alert
+            if status == "ALARM":
+                if prev_level != "ALARM":
+                    should_alert = True
+                    alert_level = "ALARM"
+            elif status == "WARNING":
+                if prev_level not in ["WARNING", "ALARM"]:
+                    should_alert = True
+                    alert_level = "WARNING"
+            
+            if should_alert:
+                logger.info(f"Budget Alert Triggered for {budget_name}: {alert_level} ({percent:.1f}%)")
+                
+                # Prepare notification config
+                email_recipients = []
+                if settings.notification_email_recipients:
+                    email_recipients = [e.strip() for e in settings.notification_email_recipients.split(',')]
+                
+                smtp_config = {
+                    'smtp_server': settings.smtp_server,
+                    'smtp_port': settings.smtp_port,
+                    'smtp_username': settings.smtp_username,
+                    'smtp_password': settings.smtp_password,
+                    'sender_email': settings.sender_email
+                }
+                
+                # Trigger background task
+                send_budget_alert_task.delay(
+                    alert_level=alert_level,
+                    current_spend=budget.get('current_spend', 0),
+                    limit_amount=budget.get('limit', 0),
+                    currency=budget.get('unit', 'USD'),
+                    slack_webhook=settings.slack_webhook_url,
+                    email_recipients=email_recipients,
+                    smtp_config=smtp_config
+                )
+                
+                # Update State
+                if budget_type == 'NATIVE' and cost_limit:
+                    cost_limit.current_alert_level = alert_level
+                    cost_limit.last_alert_sent_at = datetime.utcnow()
+                    await self.db.commit()
+                else:
+                    # Update Redis (Expire after 7 days to re-alert eventually or keep indefinite?)
+                    # Let's keep indefinite or long TTL
+                    redis_client.set(state_key, alert_level, ex=86400 * 7)
+                
+                alerts_sent += 1
+
+        return {"status": "checked", "alerts_sent": alerts_sent}
 
     async def set_limit(self, amount: float) -> CostLimit:
         """Create or update the cost limit"""

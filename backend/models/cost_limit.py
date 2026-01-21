@@ -16,6 +16,10 @@ class CostLimit(Base):
     alarm_threshold = Column(Float, default=100.0)   # Percentage for alarm (e.g., 100%)
     currency = Column(String, default="USD")
     
+    # Alert State Tracking
+    last_alert_sent_at = Column(DateTime, nullable=True)
+    current_alert_level = Column(String, default="OK")  # OK, WARNING, ALARM
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

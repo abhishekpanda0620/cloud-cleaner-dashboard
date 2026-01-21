@@ -177,7 +177,9 @@ async def get_schedule_status():
                     app=celery_app
                 )
                 # Calculate next run time
-                if entry.schedule:
+                if entry.score:
+                    next_scan = datetime.fromtimestamp(entry.score).isoformat()
+                else:
                     last_run = datetime.fromisoformat(last_scan.decode('utf-8')) if last_scan else datetime.now()
                     freq = frequency.decode('utf-8') if frequency else 'daily'
                     custom_int = int(custom_interval.decode('utf-8')) if custom_interval else None
