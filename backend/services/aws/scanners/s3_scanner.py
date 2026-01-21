@@ -271,9 +271,11 @@ class S3Scanner(ScannerBase):
         if object_count == 0:
             return True
         
-        # Very small buckets (< 1MB) might be unused
-        if size_gb < 0.001:  # Less than 1MB
-            return True
+        # Very small buckets (< 1MB) might be unused - CHECK REPLACED
+        # We now check activity for all non-empty buckets regardless of size
+        # to avoid flagging active config/state buckets.
+        # if size_gb < 0.001:  # Less than 1MB
+        #     return True
         
         # Check request metrics
         return self._check_low_activity(bucket_name, region)
