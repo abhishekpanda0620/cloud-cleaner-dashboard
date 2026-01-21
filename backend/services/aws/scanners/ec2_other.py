@@ -33,7 +33,7 @@ class EC2OtherScanner(ScannerBase):
 
     def _scan_snapshots(self) -> List[Dict[str, Any]]:
         try:
-            client = self.get_client('ec2')
+            client = self.session.client('ec2', region_name=self.region)
             # Get snapshots owned by self
             response = client.describe_snapshots(OwnerIds=['self'])
             
@@ -61,7 +61,7 @@ class EC2OtherScanner(ScannerBase):
 
     def _scan_eips(self) -> List[Dict[str, Any]]:
         try:
-            client = self.get_client('ec2')
+            client = self.session.client('ec2', region_name=self.region)
             response = client.describe_addresses()
             
             resources = []

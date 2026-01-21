@@ -14,7 +14,6 @@ from pydantic import BaseModel
 from models import get_db
 from models.scan_history import ScanHistory
 from core.config import settings
-from core.tasks import discovery_scan_task
 import logging
 
 logger = logging.getLogger(__name__)

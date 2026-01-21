@@ -174,7 +174,16 @@ class ScannerRegistry:
         """
         if not self._loaded:
             self.load_scanners()
-        return len(self._scanners)
+    def get_scanners(self) -> Dict[str, Type[ScannerBase]]:
+        """
+        Get all registered scanner classes.
+        
+        Returns:
+            Dictionary mapping service code to scanner class
+        """
+        if not self._loaded:
+            self.load_scanners()
+        return self._scanners.copy()
 
 
 # Global registry instance

@@ -1,44 +1,45 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
-
+import os
 class Settings(BaseSettings):
     """Application settings loaded from environment variables"""
     
     # AWS Configuration
-    aws_access_key_id: str
-    aws_secret_access_key: str
-    aws_region: str 
-    aws_account_id: Optional[str] = None 
+    aws_access_key_id: str = os.getenv("AWS_ACCESS_KEY_ID")
+    aws_secret_access_key: str = os.getenv("AWS_SECRET_ACCESS_KEY")
+    aws_region: str = os.getenv("AWS_REGION", "us-east-1")
+    aws_account_id: Optional[str] = os.getenv("AWS_ACCOUNT_ID") 
     
     # Notification Configuration
-    slack_webhook_url: Optional[str] = None
-    notification_email_recipients: Optional[str] = None
-    smtp_server: Optional[str] = None
-    smtp_port: Optional[int] = None
-    smtp_username: Optional[str] = None
-    smtp_password: Optional[str] = None
-    sender_email: Optional[str] = None
+    slack_webhook_url: Optional[str] = os.getenv("SLACK_WEBHOOK_URL")
+    notification_email_recipients: Optional[str] = os.getenv("NOTIFICATION_EMAIL_RECIPIENTS")
+    smtp_server: Optional[str] = os.getenv("SMTP_SERVER")
+    smtp_port: Optional[int] = os.getenv("SMTP_PORT")
+    smtp_username: Optional[str] = os.getenv("SMTP_USERNAME")
+    smtp_password: Optional[str] = os.getenv("SMTP_PASSWORD")
+    sender_email: Optional[str] = os.getenv("SENDER_EMAIL")
     
     # Database Configuration
-    database_url: str
+    database_url: str = os.getenv("DATABASE_URL")
     
     # Redis Configuration
-    redis_host: str = "redis"
-    redis_port: int = 6379
+    redis_host: str = os.getenv("REDIS_HOST", "redis")
+    redis_port: int = os.getenv("REDIS_PORT", 6379)
     
     # Server Configuration
-    port: int = 8084
-    host: str = "0.0.0.0"  # nosec B104
+    port: int = os.getenv("PORT", 8084)
+    host: str = os.getenv("HOST", "0.0.0.0")
     cors_origins: list[str] = ["http://localhost:3000"]
     
     # Application Configuration
     app_name: str = "Cloud Cleaner API"
     debug: bool = False
+    frontend_url: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
     
     # Service Discovery Configuration
-    discovery_scan_interval_hours: int = 6
-    discovery_lookback_days: int = 30
-    min_cost_threshold: float = 0.0  # Show all resources, including free tier
+    discovery_scan_interval_hours: int = os.getenv("DISCOVERY_SCAN_INTERVAL_HOURS", 6)
+    discovery_lookback_days: int = os.getenv("DISCOVERY_LOOKBACK_DAYS", 30)
+    min_cost_threshold: float = os.getenv("MIN_COST_THRESHOLD", 0.0)  # Show all resources, including free tier
     
     model_config = SettingsConfigDict(
         env_file=".env",

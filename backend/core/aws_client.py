@@ -92,3 +92,21 @@ def get_ebs_client():
 def get_iam_client():
     """Get IAM client"""
     return get_aws_client_factory().get_client('iam')
+
+
+class AWSClient:
+    """Wrapper class for AWS operations to support legacy/refactored code usage"""
+    
+    def __init__(self):
+        self.factory = get_aws_client_factory()
+        
+    def get_available_regions(self) -> list[str]:
+        """Fetch available AWS regions for EC2 (standard for region enumeration)"""
+        try:
+            ec2 = self.factory.get_client('ec2')
+            response = ec2.describe_regions()
+            return [region['RegionName'] for region in response['Regions']]
+        except Exception as e:
+            logger.error(f"Failed to fetch regions: {e}")
+            # Fallback to current region if describe_regions fails
+            return [settings.aws_region]
